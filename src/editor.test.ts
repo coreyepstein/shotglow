@@ -28,8 +28,8 @@ const storageMock: {
 
 const windowsRemoveMock = mock(() => Promise.resolve());
 
-// @ts-expect-error — stub for test environment
-globalThis.chrome = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).chrome = {
   storage: {
     local: {
       get: (key: string) => storageMock.get(key),
