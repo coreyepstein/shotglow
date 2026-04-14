@@ -1,5 +1,5 @@
 import type { Rect } from "./types.js";
-import { compositeAll } from "./redact.js";
+import { copyRedactedToClipboard, downloadRedacted } from "./clipboard.js";
 
 console.log("Redact-It editor loaded.");
 
@@ -240,28 +240,44 @@ function onClearAll(): void {
   draw();
 }
 
+// ── Toast ──────────────────────────────────────────────────────────────────────
+
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showToast(message: string, type: "success" | "error"): void {
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+  if (toastTimer !== null) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+  toast.textContent = message;
+  toast.className = `visible ${type}`;
+  toastTimer = setTimeout(() => {
+    toast.className = "";
+    toastTimer = null;
+  }, 2000);
+}
+
+// ── Clipboard / download handlers ─────────────────────────────────────────────
+
 async function onCopyRedacted(): Promise<void> {
-  const composite = document.createElement("canvas");
-  composite.width = baseCanvas.width;
-  composite.height = baseCanvas.height;
-  const ctx = composite.getContext("2d");
-  if (!ctx) return;
+  try {
+    await copyRedactedToClipboard(baseCanvas, rects, 3);
+    showToast("Copied to clipboard", "success");
+  } catch (err) {
+    console.error("Redact-It: clipboard write failed", err);
+    showToast("Copy failed — use Download instead", "error");
+  }
+}
 
-  // Draw base image
-  ctx.drawImage(baseCanvas, 0, 0);
-
-  // Apply pixelate + feather redaction to all marked regions (strength 3 = 32px blocks)
-  compositeAll(ctx, rects, 3);
-
-  composite.toBlob(async (blob) => {
-    if (!blob) return;
-    try {
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      console.log("Redact-It: copied redacted image to clipboard.");
-    } catch (err) {
-      console.error("Redact-It: clipboard write failed", err);
-    }
-  }, "image/png");
+async function onDownload(): Promise<void> {
+  try {
+    await downloadRedacted(baseCanvas, rects, 3);
+  } catch (err) {
+    console.error("Redact-It: download failed", err);
+    showToast("Download failed", "error");
+  }
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────────
@@ -331,6 +347,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btn-clear")?.addEventListener("click", onClearAll);
   document.getElementById("btn-copy")?.addEventListener("click", () => {
     onCopyRedacted().catch((err) => console.error("Redact-It: copy failed", err));
+  });
+  document.getElementById("btn-download")?.addEventListener("click", () => {
+    onDownload().catch((err) => console.error("Redact-It: download failed", err));
   });
 
   // Initial draw (empty state)

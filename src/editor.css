@@ -66,3 +66,34 @@ body {
 #overlay {
   cursor: crosshair;
 }
+
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+}
+
+#toast.visible {
+  opacity: 1;
+}
+
+#toast.success {
+  background: #276749;
+  color: #f0fff4;
+  border: 1px solid #2f855a;
+}
+
+#toast.error {
+  background: #742a2a;
+  color: #fff5f5;
+  border: 1px solid #9b2c2c;
+}
