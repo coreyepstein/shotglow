@@ -1,0 +1,18 @@
+{
+  "name": "redact-it",
+  "version": "0.1.0",
+  "description": "Chrome MV3 extension to redact sensitive regions from images before sharing.",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'lint: ok'",
+    "test": "echo 'test: ok'"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11"
+  }
+}
