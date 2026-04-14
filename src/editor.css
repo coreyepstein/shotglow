@@ -47,6 +47,35 @@ body {
   background: #c53030;
 }
 
+.strength-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #c0c0c0;
+  white-space: nowrap;
+}
+
+#strength-slider {
+  width: 80px;
+  accent-color: #e53e3e;
+  cursor: pointer;
+}
+
+#strength-value {
+  min-width: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: #f0f0f0;
+  font-weight: 600;
+}
+
+#rect-count {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+}
+
 #canvas-container {
   position: relative;
   flex: 1;

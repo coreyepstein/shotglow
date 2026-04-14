@@ -1,13 +1,24 @@
 import type { Rect } from "./types.js";
 import { copyRedactedToClipboard, downloadRedacted } from "./clipboard.js";
+import { loadStrength, saveStrength } from "./storage.js";
 
 console.log("Redact-It editor loaded.");
+
+// ── Undo/Redo types ────────────────────────────────────────────────────────────
+
+type UndoAction =
+  | { type: "add"; rect: Rect }
+  | { type: "delete"; rect: Rect; index: number };
 
 // ── State ──────────────────────────────────────────────────────────────────────
 
 let rects: Rect[] = [];
 let selectedId: string | null = null;
 let dragState: { startX: number; startY: number; live: Rect | null } | null = null;
+let strength = 3;
+
+const undoStack: UndoAction[] = [];
+const redoStack: UndoAction[] = [];
 
 // Canvas references (populated after DOMContentLoaded)
 let baseCanvas: HTMLCanvasElement;
@@ -65,6 +76,8 @@ function draw(livePreview?: Rect): void {
     overlayCtx.strokeRect(livePreview.x, livePreview.y, livePreview.w, livePreview.h);
     overlayCtx.setLineDash([]);
   }
+
+  updateRectCount();
 }
 
 /** Draw 8px filled square handles at the four corners of a rect. */
@@ -83,6 +96,15 @@ function drawCornerHandles(rect: Rect): void {
   }
 }
 
+// ── Rect count indicator ───────────────────────────────────────────────────────
+
+function updateRectCount(): void {
+  const el = document.getElementById("rect-count");
+  if (!el) return;
+  const n = rects.length;
+  el.textContent = n === 1 ? "1 rect" : `${n} rects`;
+}
+
 // ── Hit testing ────────────────────────────────────────────────────────────────
 
 /** Return the topmost rect at (x, y), or null. */
@@ -93,6 +115,84 @@ function rectAtPoint(x: number, y: number): Rect | null {
       return r;
     }
   }
+  return null;
+}
+
+// ── Undo/Redo operations ───────────────────────────────────────────────────────
+
+function pushAdd(rect: Rect): void {
+  rects.push(rect);
+  undoStack.push({ type: "add", rect });
+  redoStack.length = 0; // new action clears redo
+}
+
+function pushDelete(rect: Rect): void {
+  const index = rects.findIndex((r) => r.id === rect.id);
+  if (index === -1) return;
+  rects.splice(index, 1);
+  undoStack.push({ type: "delete", rect, index });
+  redoStack.length = 0;
+}
+
+function undo(): boolean {
+  const action = undoStack.pop();
+  if (!action) return false;
+
+  if (action.type === "add") {
+    rects = rects.filter((r) => r.id !== action.rect.id);
+    redoStack.push(action);
+  } else {
+    // delete was undone — restore rect at its original index
+    rects.splice(action.index, 0, action.rect);
+    redoStack.push(action);
+  }
+
+  // Clear selection if the selected rect was affected
+  if (selectedId && !rects.find((r) => r.id === selectedId)) {
+    selectedId = null;
+  }
+
+  return true;
+}
+
+function redo(): boolean {
+  const action = redoStack.pop();
+  if (!action) return false;
+
+  if (action.type === "add") {
+    rects.push(action.rect);
+    undoStack.push(action);
+  } else {
+    rects.splice(action.index, 1);
+    undoStack.push(action);
+  }
+
+  // Clear selection if it no longer exists
+  if (selectedId && !rects.find((r) => r.id === selectedId)) {
+    selectedId = null;
+  }
+
+  return true;
+}
+
+// ── Keyboard shortcut routing ──────────────────────────────────────────────────
+
+type ShortcutAction = "undo" | "redo" | "copy" | "download" | "close";
+
+export function resolveKeyboardShortcut(e: {
+  key: string;
+  metaKey: boolean;
+  shiftKey: boolean;
+  ctrlKey: boolean;
+}): ShortcutAction | null {
+  const mod = e.metaKey || e.ctrlKey;
+
+  if (mod && !e.shiftKey && e.key === "z") return "undo";
+  if (mod && e.shiftKey && e.key === "z") return "redo";
+  if (mod && e.key === "c") return "copy";
+  if (mod && e.key === "s") return "download";
+  if (!mod && e.key === "Escape") return "close";
+
   return null;
 }
 
@@ -146,7 +246,7 @@ function onMouseUp(e: MouseEvent): void {
       id: crypto.randomUUID(),
       ...norm,
     };
-    rects.push(newRect);
+    pushAdd(newRect);
     selectedId = newRect.id;
   }
 
@@ -157,16 +257,48 @@ function onMouseUp(e: MouseEvent): void {
 // ── Keyboard interaction ───────────────────────────────────────────────────────
 
 function onKeyDown(e: KeyboardEvent): void {
+  // Delete / Backspace: remove selected rect
   if (e.key === "Delete" || e.key === "Backspace") {
     if (selectedId) {
-      rects = rects.filter((r) => r.id !== selectedId);
-      selectedId = null;
-      draw();
+      const rect = rects.find((r) => r.id === selectedId);
+      if (rect) {
+        pushDelete(rect);
+        selectedId = null;
+        draw();
+      }
     }
     return;
   }
 
-  if (e.key === "Escape") {
+  const action = resolveKeyboardShortcut(e);
+
+  if (action === "undo") {
+    e.preventDefault();
+    undo();
+    draw();
+    return;
+  }
+
+  if (action === "redo") {
+    e.preventDefault();
+    redo();
+    draw();
+    return;
+  }
+
+  if (action === "copy") {
+    e.preventDefault();
+    onCopyRedacted().catch((err) => console.error("Redact-It: copy failed", err));
+    return;
+  }
+
+  if (action === "download") {
+    e.preventDefault();
+    onDownload().catch((err) => console.error("Redact-It: download failed", err));
+    return;
+  }
+
+  if (action === "close") {
     if (dragState) {
       // Cancel active drag
       dragState = null;
@@ -223,23 +355,6 @@ function loadImageOntoCanvas(canvas: HTMLCanvasElement, dataUrl: string): Promis
   });
 }
 
-// ── Toolbar button handlers ────────────────────────────────────────────────────
-
-function onUndo(): void {
-  if (rects.length === 0) return;
-  const removed = rects.pop()!;
-  if (selectedId === removed.id) {
-    selectedId = null;
-  }
-  draw();
-}
-
-function onClearAll(): void {
-  rects = [];
-  selectedId = null;
-  draw();
-}
-
 // ── Toast ──────────────────────────────────────────────────────────────────────
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -263,7 +378,7 @@ function showToast(message: string, type: "success" | "error"): void {
 
 async function onCopyRedacted(): Promise<void> {
   try {
-    await copyRedactedToClipboard(baseCanvas, rects, 3);
+    await copyRedactedToClipboard(baseCanvas, rects, strength);
     showToast("Copied to clipboard", "success");
   } catch (err) {
     console.error("Redact-It: clipboard write failed", err);
@@ -273,7 +388,7 @@ async function onCopyRedacted(): Promise<void> {
 
 async function onDownload(): Promise<void> {
   try {
-    await downloadRedacted(baseCanvas, rects, 3);
+    await downloadRedacted(baseCanvas, rects, strength);
   } catch (err) {
     console.error("Redact-It: download failed", err);
     showToast("Download failed", "error");
@@ -297,6 +412,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
   overlayCtx = ctx;
+
+  // ── Load strength from storage before rendering ─────────────────────────────
+
+  strength = await loadStrength();
+  const slider = document.getElementById("strength-slider") as HTMLInputElement | null;
+  const strengthValue = document.getElementById("strength-value");
+  if (slider) {
+    slider.value = String(strength);
+    if (strengthValue) strengthValue.textContent = String(strength);
+    slider.addEventListener("input", () => {
+      strength = Number(slider.value);
+      if (strengthValue) strengthValue.textContent = String(strength);
+      saveStrength(strength).catch((err) => console.error("Redact-It: failed to save strength", err));
+    });
+  }
 
   // ── Load image from session storage ────────────────────────────────────────
 
@@ -343,8 +473,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ── Wire up toolbar buttons ─────────────────────────────────────────────────
 
-  document.getElementById("btn-undo")?.addEventListener("click", onUndo);
-  document.getElementById("btn-clear")?.addEventListener("click", onClearAll);
   document.getElementById("btn-copy")?.addEventListener("click", () => {
     onCopyRedacted().catch((err) => console.error("Redact-It: copy failed", err));
   });
