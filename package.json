@@ -2,6 +2,16 @@
   "name": "redact-it",
   "version": "0.1.0",
   "description": "Chrome MV3 extension to redact sensitive regions from images before sharing.",
+  "license": "MIT",
+  "author": "Corey Epstein",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coreyepstein/redact-it.git"
+  },
+  "bugs": {
+    "url": "https://github.com/coreyepstein/redact-it/issues"
+  },
+  "homepage": "https://github.com/coreyepstein/redact-it#readme",
   "private": true,
   "scripts": {
     "dev": "vite",
