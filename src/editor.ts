@@ -1,4 +1,5 @@
 import type { Rect } from "./types.js";
+import { compositeAll } from "./redact.js";
 
 console.log("Redact-It editor loaded.");
 
@@ -249,11 +250,8 @@ async function onCopyRedacted(): Promise<void> {
   // Draw base image
   ctx.drawImage(baseCanvas, 0, 0);
 
-  // Draw redaction rectangles as solid black fills
-  ctx.fillStyle = "#000000";
-  for (const rect of rects) {
-    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
-  }
+  // Apply pixelate + feather redaction to all marked regions (strength 3 = 32px blocks)
+  compositeAll(ctx, rects, 3);
 
   composite.toBlob(async (blob) => {
     if (!blob) return;
