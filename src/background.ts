@@ -9,7 +9,7 @@ function registerContextMenu(): void {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: "shotglow-open",
-      title: "Redact this image",
+      title: "Edit in Shotglow",
       contexts: ["image"],
     });
   });
