@@ -20,6 +20,30 @@ Whenever you make changes, re-run `bun run build` and click the refresh icon nex
 3. Adjust **redaction strength** (1–4) in the toolbar — higher = coarser mosaic.
 4. Click **Copy** to copy the redacted PNG to your clipboard, or **Download** to save as `redacted.png`.
 
+### Beautify the screenshot
+
+Beyond redaction, the right-hand panel turns a raw screenshot into something presentation-ready
+— and the live preview always matches the exported PNG exactly:
+
+- **Frame** — margin around the image, image scale, corner roundness, and a drop shadow (blur + strength).
+- **Background** — a solid color, a gradient (8 presets plus a custom two-stop gradient with angle),
+  tileable patterns over a base color, or a full wallpaper image.
+- **Canvas** — output aspect ratio: Auto, 1:1, 4:3, or 16:9 (expands the frame, never crops the image).
+
+All beautify settings are persisted to `chrome.storage.local` and restored on next open.
+
+#### Wallpaper backgrounds
+
+Image backgrounds are bundled static assets (image generation can't run in-browser). Generate a set
+at dev time and commit them:
+
+```bash
+bun run gen:wallpapers   # Codex CLI imagegen → assets/backgrounds/
+```
+
+Then add a matching entry to `IMAGE_PRESETS` in `src/backgrounds.ts`. Until wallpapers are added, the
+**Image** background tab shows an empty state. Gradients and patterns ship out of the box.
+
 ### Keyboard Shortcuts
 
 | Key | Action |
@@ -61,16 +85,27 @@ redact-it/
 ├── src/
 │   ├── background.ts        # MV3 service worker — context menu, image capture, blob bridge
 │   ├── content.ts           # Content script injected into pages (blob URL bridging)
-│   ├── editor.html          # Full-page redaction editor
-│   ├── editor.ts            # Editor logic — two-canvas render, undo stack, toolbar
+│   ├── editor.html          # Full-page redaction + beautify editor
+│   ├── editor.ts            # Editor logic — two-canvas render, undo stack, beautify controls
 │   ├── editor.css           # Editor styles
 │   ├── redact.ts            # Pure pixelate compositor (unit-testable, no DOM/chrome deps)
-│   ├── clipboard.ts         # Copy-to-clipboard + download helpers
-│   ├── storage.ts           # chrome.storage.local wrapper for strength persistence
-│   ├── types.ts             # Shared TypeScript types (Rect, SessionImageKey, BlobBridgeResponse)
+│   ├── layout.ts            # Pure layout/geometry core (output layout, rect mapping, gradients)
+│   ├── beautify.ts          # Beautify defaults, tolerant merge, debounce, live-preview DOM
+│   ├── backgrounds.ts       # Background preset registry + CSS/asset resolution
+│   ├── clipboard.ts         # buildComposite (background→shadow→clip→image→redactions) + export
+│   ├── storage.ts           # chrome.storage.local wrappers (strength + beautify settings)
+│   ├── types.ts             # Shared TypeScript types (Rect, BeautifySettings, …)
 │   ├── background.test.ts   # Unit tests for service worker
 │   ├── editor.test.ts       # Unit tests for editor
-│   └── redact.test.ts       # Unit tests for pixelate algorithm
+│   ├── redact.test.ts       # Unit tests for pixelate algorithm
+│   ├── layout.test.ts       # Unit tests for layout/geometry math
+│   ├── beautify.test.ts     # Unit tests for settings merge + debounce
+│   └── clipboard.test.ts    # Unit tests for the export compositing pipeline
+├── assets/
+│   ├── patterns/            # Tileable SVG pattern overlays
+│   └── backgrounds/         # Generated wallpaper images (see gen:wallpapers)
+├── scripts/
+│   └── gen-wallpapers.mjs   # Dev-time wallpaper generator (Codex CLI imagegen)
 ├── e2e/
 │   └── fixtures/            # Static test assets (test-page.html, redaction-sample.png)
 ├── icons/                   # Extension icons (16/32/48/128 px)

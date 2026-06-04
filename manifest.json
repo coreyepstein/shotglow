@@ -34,7 +34,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["editor.html"],
+      "resources": [
+        "editor.html",
+        "assets/*",
+        "assets/patterns/*",
+        "assets/backgrounds/*"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

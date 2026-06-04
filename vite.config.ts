@@ -41,18 +41,23 @@ export default defineConfig({
           resolve(outDir, "manifest.json")
         );
 
+        // Recursively copy a directory tree if it exists.
+        const copyDir = (src: string, dest: string): void => {
+          if (!fs.existsSync(src)) return;
+          fs.mkdirSync(dest, { recursive: true });
+          for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+            const srcPath = resolve(src, entry.name);
+            const destPath = resolve(dest, entry.name);
+            if (entry.isDirectory()) copyDir(srcPath, destPath);
+            else fs.copyFileSync(srcPath, destPath);
+          }
+        };
+
         // Copy icons/ to dist/icons/
-        const iconsDir = resolve(__dirname, "icons");
-        const distIconsDir = resolve(outDir, "icons");
-        if (!fs.existsSync(distIconsDir)) {
-          fs.mkdirSync(distIconsDir, { recursive: true });
-        }
-        for (const file of fs.readdirSync(iconsDir)) {
-          fs.copyFileSync(
-            resolve(iconsDir, file),
-            resolve(distIconsDir, file)
-          );
-        }
+        copyDir(resolve(__dirname, "icons"), resolve(outDir, "icons"));
+
+        // Copy bundled background assets to dist/assets/
+        copyDir(resolve(__dirname, "assets"), resolve(outDir, "assets"));
       },
     },
   ],

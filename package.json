@@ -18,7 +18,8 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "gen:wallpapers": "node scripts/gen-wallpapers.mjs"
   },
   "devDependencies": {
     "@types/bun": "^1.3.12",
