@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Redact-It</title>
+    <title>Shotglow</title>
     <link rel="stylesheet" href="./editor.css" />
   </head>
   <body>
@@ -16,12 +16,111 @@
       <span id="rect-count">0 rects</span>
       <span style="flex: 1"></span>
       <button id="btn-download">Download</button>
-      <button id="btn-copy" class="primary">Copy Redacted</button>
+      <button id="btn-copy" class="primary">Copy</button>
     </div>
 
-    <div id="canvas-container">
-      <canvas id="base"></canvas>
-      <canvas id="overlay"></canvas>
+    <div id="editor-main">
+      <div id="canvas-stage">
+        <div id="output-frame">
+          <div id="pattern-layer"></div>
+          <div id="frame-wrapper">
+            <canvas id="base"></canvas>
+            <canvas id="overlay"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <aside id="controls-panel">
+        <section class="control-section">
+          <h2>Frame</h2>
+          <label class="ctl">
+            <span class="ctl-label">Margin <span id="bf-margin-val" class="ctl-val">64</span></span>
+            <input type="range" id="bf-margin" min="0" max="400" step="2" value="64" />
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Image size <span id="bf-scale-val" class="ctl-val">100%</span></span>
+            <input type="range" id="bf-scale" min="10" max="100" step="1" value="100" />
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Roundness <span id="bf-radius-val" class="ctl-val">12</span></span>
+            <input type="range" id="bf-radius" min="0" max="120" step="1" value="12" />
+          </label>
+          <label class="ctl ctl-row">
+            <input type="checkbox" id="bf-shadow-enabled" checked />
+            <span class="ctl-label">Drop shadow</span>
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Shadow blur <span id="bf-shadow-blur-val" class="ctl-val">40</span></span>
+            <input type="range" id="bf-shadow-blur" min="0" max="200" step="1" value="40" />
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Shadow strength <span id="bf-shadow-opacity-val" class="ctl-val">35%</span></span>
+            <input type="range" id="bf-shadow-opacity" min="0" max="100" step="1" value="35" />
+          </label>
+        </section>
+
+        <section class="control-section">
+          <h2>Background</h2>
+          <div id="bf-bg-type" class="segmented">
+            <button type="button" data-bgtype="solid">Solid</button>
+            <button type="button" data-bgtype="gradient" class="active">Gradient</button>
+            <button type="button" data-bgtype="image">Image</button>
+          </div>
+
+          <div id="bf-panel-solid" class="bg-panel" hidden>
+            <label class="ctl ctl-row">
+              <span class="ctl-label">Color</span>
+              <input type="color" id="bf-bg-solid" value="#1e293b" />
+            </label>
+          </div>
+
+          <div id="bf-panel-gradient" class="bg-panel">
+            <div id="bf-gradient-grid" class="swatch-grid"></div>
+            <button type="button" id="bf-gradient-custom-toggle" class="link-btn">Custom gradient</button>
+            <div id="bf-gradient-custom" class="custom-gradient" hidden>
+              <label class="ctl ctl-row">
+                <span class="ctl-label">From</span>
+                <input type="color" id="bf-grad-from" value="#6a11cb" />
+              </label>
+              <label class="ctl ctl-row">
+                <span class="ctl-label">To</span>
+                <input type="color" id="bf-grad-to" value="#2575fc" />
+              </label>
+              <label class="ctl">
+                <span class="ctl-label">Angle <span id="bf-grad-angle-val" class="ctl-val">135°</span></span>
+                <input type="range" id="bf-grad-angle" min="0" max="360" step="5" value="135" />
+              </label>
+            </div>
+          </div>
+
+          <div id="bf-panel-image" class="bg-panel" hidden>
+            <div id="bf-image-grid" class="swatch-grid"></div>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h2>Overlay</h2>
+          <div id="bf-pattern-grid" class="swatch-grid"></div>
+          <label class="ctl ctl-row">
+            <span class="ctl-label">Pattern color</span>
+            <input type="color" id="bf-pattern-color" value="#ffffff" />
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Pattern strength <span id="bf-pattern-opacity-val" class="ctl-val">12%</span></span>
+            <input type="range" id="bf-pattern-opacity" min="0" max="100" step="1" value="12" />
+          </label>
+        </section>
+
+        <section class="control-section">
+          <h2>Canvas</h2>
+          <div id="bf-aspect" class="segmented">
+            <button type="button" data-aspect="auto" class="active">Auto</button>
+            <button type="button" data-aspect="1:1">1:1</button>
+            <button type="button" data-aspect="4:3">4:3</button>
+            <button type="button" data-aspect="16:9">16:9</button>
+          </div>
+        </section>
+      </aside>
     </div>
 
     <div id="toast" aria-live="polite"></div>

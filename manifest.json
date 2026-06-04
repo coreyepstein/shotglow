@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Redact-It",
+  "name": "Shotglow",
   "version": "0.1.0",
   "description": "Redact sensitive regions from images before sharing.",
   "background": {
@@ -15,7 +15,13 @@
     }
   ],
   "action": {
-    "default_title": "Redact-It"
+    "default_title": "Shotglow",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
   },
   "permissions": [
     "contextMenus",
@@ -34,7 +40,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["editor.html"],
+      "resources": [
+        "editor.html",
+        "assets/*",
+        "assets/patterns/*",
+        "assets/backgrounds/*"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

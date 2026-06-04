@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fb923c" />
+      <stop offset="0.5" stop-color="#ec4899" />
+      <stop offset="1" stop-color="#7c3aed" />
+    </linearGradient>
+    <radialGradient id="glow" cx="143" cy="123" r="384" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.5" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+    <clipPath id="tileClip">
+      <rect x="0" y="0" width="512" height="512" rx="115" ry="115" />
+    </clipPath>
+    <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="13" stdDeviation="18" flood-color="#000000" flood-opacity="0.28" />
+    </filter>
+  </defs>
+
+  <g clip-path="url(#tileClip)">
+    <rect x="0" y="0" width="512" height="512" fill="url(#tile)" />
+    <rect x="0" y="0" width="512" height="512" fill="url(#glow)" />
+
+    <!-- the "shot" card -->
+    <g filter="url(#cardShadow)">
+      <rect x="128" y="159" width="256" height="194" rx="31" ry="31" fill="#ffffff" />
+    </g>
+
+    <!-- light accent line -->
+    <rect x="169" y="213" width="87" height="23" rx="11.5" ry="11.5" fill="#cbd5e1" />
+    <!-- redaction bar -->
+    <rect x="169" y="268" width="128" height="31" rx="15.5" ry="15.5" fill="#1f2937" />
+  </g>
+</svg>

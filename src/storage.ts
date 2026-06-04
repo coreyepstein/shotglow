@@ -1,7 +1,11 @@
-// Simple wrapper around chrome.storage.local for strength persistence
+// Simple wrappers around chrome.storage.local for persisted editor settings.
 
-const STRENGTH_KEY = "redact-it.strength";
+import type { BeautifySettings } from "./types.js";
+import { DEFAULT_BEAUTIFY, mergeBeautify } from "./beautify.js";
+
+const STRENGTH_KEY = "shotglow.strength";
 const DEFAULT_STRENGTH = 3;
+const BEAUTIFY_KEY = "shotglow.beautify";
 
 export async function loadStrength(): Promise<number> {
   const result = await chrome.storage.local.get(STRENGTH_KEY);
@@ -12,4 +16,13 @@ export async function loadStrength(): Promise<number> {
 
 export async function saveStrength(value: number): Promise<void> {
   await chrome.storage.local.set({ [STRENGTH_KEY]: value });
+}
+
+export async function loadBeautify(): Promise<BeautifySettings> {
+  const result = await chrome.storage.local.get(BEAUTIFY_KEY);
+  return mergeBeautify(DEFAULT_BEAUTIFY, result[BEAUTIFY_KEY]);
+}
+
+export async function saveBeautify(settings: BeautifySettings): Promise<void> {
+  await chrome.storage.local.set({ [BEAUTIFY_KEY]: settings });
 }

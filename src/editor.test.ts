@@ -126,7 +126,7 @@ function makeRect(id: string, x = 0, y = 0, w = 100, h = 100): Rect {
 
 // ── Storage helpers (contract for src/storage.ts) ─────────────────────────────
 
-const STRENGTH_KEY = "redact-it.strength";
+const STRENGTH_KEY = "shotglow.strength";
 const DEFAULT_STRENGTH = 3;
 
 async function loadStrength(): Promise<number> {
@@ -312,7 +312,7 @@ describe("Storage — strength persistence", () => {
     expect(await loadStrength()).toBe(2);
   });
 
-  it("uses key redact-it.strength", async () => {
+  it("uses key shotglow.strength", async () => {
     await saveStrength(3);
     const raw = storageMock.local[STRENGTH_KEY];
     expect(raw).toBe(3);

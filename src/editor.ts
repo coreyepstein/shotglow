@@ -1,8 +1,11 @@
-import type { Rect } from "./types.js";
+import type { Rect, BeautifySettings, BackgroundSpec } from "./types.js";
 import { copyRedactedToClipboard, downloadRedacted } from "./clipboard.js";
-import { loadStrength, saveStrength } from "./storage.js";
+import { loadStrength, saveStrength, loadBeautify, saveBeautify } from "./storage.js";
+import { DEFAULT_BEAUTIFY, applyPreview, debounce, type PreviewEls } from "./beautify.js";
+import { computeOutputLayout } from "./layout.js";
+import { GRADIENT_PRESETS, PATTERN_PRESETS, IMAGE_PRESETS, resolveBackgroundCss, assetUrl } from "./backgrounds.js";
 
-console.log("Redact-It editor loaded.");
+console.log("Shotglow editor loaded.");
 
 // ── Undo/Redo types ────────────────────────────────────────────────────────────
 
@@ -16,6 +19,7 @@ let rects: Rect[] = [];
 let selectedId: string | null = null;
 let dragState: { startX: number; startY: number; live: Rect | null } | null = null;
 let strength = 3;
+let beautify: BeautifySettings = { ...DEFAULT_BEAUTIFY };
 
 const undoStack: UndoAction[] = [];
 const redoStack: UndoAction[] = [];
@@ -24,6 +28,13 @@ const redoStack: UndoAction[] = [];
 let baseCanvas: HTMLCanvasElement;
 let overlayCanvas: HTMLCanvasElement;
 let overlayCtx: CanvasRenderingContext2D;
+
+// Preview-frame references (populated after DOMContentLoaded)
+let previewEls: PreviewEls | null = null;
+
+const saveBeautifyDebounced = debounce((s: BeautifySettings) => {
+  saveBeautify(s).catch((err) => console.error("Shotglow: failed to save beautify settings", err));
+}, 250);
 
 // ── Drawing ────────────────────────────────────────────────────────────────────
 
@@ -198,9 +209,21 @@ export function resolveKeyboardShortcut(e: {
 
 // ── Mouse interaction ──────────────────────────────────────────────────────────
 
+/**
+ * Convert a mouse event to source-image (bitmap) coordinates. Uses
+ * getBoundingClientRect so it stays correct regardless of how the canvas is
+ * CSS-sized (image scale) or visually transformed (fit-to-stage scaling) —
+ * unlike e.offsetX/offsetY, which break under ancestor transforms.
+ */
+function eventToImageCoords(e: MouseEvent, canvas: HTMLCanvasElement): { x: number; y: number } {
+  const r = canvas.getBoundingClientRect();
+  const sx = r.width > 0 ? canvas.width / r.width : 1;
+  const sy = r.height > 0 ? canvas.height / r.height : 1;
+  return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+}
+
 function onMouseDown(e: MouseEvent): void {
-  const x = e.offsetX;
-  const y = e.offsetY;
+  const { x, y } = eventToImageCoords(e, overlayCanvas);
 
   const hit = rectAtPoint(x, y);
 
@@ -220,8 +243,7 @@ function onMouseDown(e: MouseEvent): void {
 function onMouseMove(e: MouseEvent): void {
   if (!dragState) return;
 
-  const x = e.offsetX;
-  const y = e.offsetY;
+  const { x, y } = eventToImageCoords(e, overlayCanvas);
 
   const rawW = x - dragState.startX;
   const rawH = y - dragState.startY;
@@ -234,8 +256,7 @@ function onMouseMove(e: MouseEvent): void {
 function onMouseUp(e: MouseEvent): void {
   if (!dragState) return;
 
-  const x = e.offsetX;
-  const y = e.offsetY;
+  const { x, y } = eventToImageCoords(e, overlayCanvas);
 
   const rawW = x - dragState.startX;
   const rawH = y - dragState.startY;
@@ -288,13 +309,13 @@ function onKeyDown(e: KeyboardEvent): void {
 
   if (action === "copy") {
     e.preventDefault();
-    onCopyRedacted().catch((err) => console.error("Redact-It: copy failed", err));
+    onCopyRedacted().catch((err) => console.error("Shotglow: copy failed", err));
     return;
   }
 
   if (action === "download") {
     e.preventDefault();
-    onDownload().catch((err) => console.error("Redact-It: download failed", err));
+    onDownload().catch((err) => console.error("Shotglow: download failed", err));
     return;
   }
 
@@ -316,19 +337,23 @@ function onKeyDown(e: KeyboardEvent): void {
 
 // ── Window sizing ──────────────────────────────────────────────────────────────
 
-function resizeWindowToImage(img: HTMLImageElement): void {
-  const chrome_chrome = 60; // approximate toolbar/chrome pixels
-  const minW = 400;
-  const minH = 300;
+/**
+ * Size the editor window to fit the beautified output (framed image + margins),
+ * plus the controls panel and toolbar, clamped to the screen. The preview
+ * fit-scales within whatever space remains, so this just aims for a comfortable
+ * default that shows the whole composition.
+ */
+function resizeWindowToContents(): void {
+  const PANEL = 280; // controls panel width
+  const TOOLBAR = 56; // toolbar height
+  const PAD = 48; // breathing room around the stage
+  const minW = 640;
+  const minH = 480;
 
-  const w = Math.max(
-    minW,
-    Math.min(Math.round(img.naturalWidth + 20), Math.round(screen.availWidth * 0.9))
-  );
-  const h = Math.max(
-    minH,
-    Math.min(Math.round(img.naturalHeight + chrome_chrome), Math.round(screen.availHeight * 0.9))
-  );
+  const layout = computeOutputLayout(beautify, baseCanvas.width, baseCanvas.height);
+
+  const w = Math.max(minW, Math.min(layout.canvasW + PANEL + PAD, Math.round(screen.availWidth * 0.92)));
+  const h = Math.max(minH, Math.min(layout.canvasH + TOOLBAR + PAD, Math.round(screen.availHeight * 0.92)));
 
   chrome.windows.update(chrome.windows.WINDOW_ID_CURRENT, { width: w, height: h });
 }
@@ -378,21 +403,298 @@ function showToast(message: string, type: "success" | "error"): void {
 
 async function onCopyRedacted(): Promise<void> {
   try {
-    await copyRedactedToClipboard(baseCanvas, rects, strength);
+    await copyRedactedToClipboard(baseCanvas, rects, strength, beautify);
     showToast("Copied to clipboard", "success");
   } catch (err) {
-    console.error("Redact-It: clipboard write failed", err);
+    console.error("Shotglow: clipboard write failed", err);
     showToast("Copy failed — use Download instead", "error");
   }
 }
 
 async function onDownload(): Promise<void> {
   try {
-    await downloadRedacted(baseCanvas, rects, strength);
+    await downloadRedacted(baseCanvas, rects, strength, beautify);
   } catch (err) {
-    console.error("Redact-It: download failed", err);
+    console.error("Shotglow: download failed", err);
     showToast("Download failed", "error");
   }
+}
+
+// ── Beautify controls ──────────────────────────────────────────────────────────
+
+/** Re-render the live preview from current beautify settings. */
+function applyPreviewNow(): void {
+  if (!previewEls || !baseCanvas.width) return;
+  applyPreview(beautify, previewEls, baseCanvas.width, baseCanvas.height);
+}
+
+/** Apply a settings patch: update state, refresh preview, debounce-save. */
+function onBeautifyChange(patch: Partial<BeautifySettings>): void {
+  beautify = { ...beautify, ...patch };
+  applyPreviewNow();
+  if (patch.background || patch.pattern) syncSwatchSelection();
+  saveBeautifyDebounced(beautify);
+}
+
+function $<T extends HTMLElement = HTMLElement>(id: string): T | null {
+  return document.getElementById(id) as T | null;
+}
+
+/** Mark the one button in a group whose data-attr matches `value` active. */
+function setActive(container: HTMLElement | null, attr: string, value: string): void {
+  if (!container) return;
+  for (const btn of Array.from(container.querySelectorAll<HTMLElement>("button"))) {
+    btn.classList.toggle("active", btn.dataset[attr] === value);
+  }
+}
+
+/** Show only the background sub-panel matching the active type. */
+function showBackgroundPanel(type: BackgroundSpec["type"]): void {
+  for (const t of ["solid", "gradient", "image"]) {
+    const panel = $(`bf-panel-${t}`);
+    if (panel) panel.hidden = t !== type;
+  }
+}
+
+/** Build the preset swatch grids and seed all controls from current state. */
+function setupBeautifyControls(): void {
+  // ── Frame sliders ──
+  bindRange("bf-margin", "bf-margin-val", (v) => onBeautifyChange({ margin: v }), (v) => String(v));
+  bindRange("bf-scale", "bf-scale-val", (v) => onBeautifyChange({ scale: v / 100 }), (v) => `${v}%`);
+  bindRange("bf-radius", "bf-radius-val", (v) => onBeautifyChange({ radius: v }), (v) => String(v));
+  bindRange(
+    "bf-shadow-blur",
+    "bf-shadow-blur-val",
+    (v) => onBeautifyChange({ shadow: { ...beautify.shadow, blur: v } }),
+    (v) => String(v),
+  );
+  bindRange(
+    "bf-shadow-opacity",
+    "bf-shadow-opacity-val",
+    (v) => onBeautifyChange({ shadow: { ...beautify.shadow, opacity: v / 100 } }),
+    (v) => `${v}%`,
+  );
+
+  const shadowToggle = $<HTMLInputElement>("bf-shadow-enabled");
+  shadowToggle?.addEventListener("change", () => {
+    onBeautifyChange({ shadow: { ...beautify.shadow, enabled: !!shadowToggle.checked } });
+  });
+
+  // ── Background type segmented control ──
+  const bgTypeEl = $("bf-bg-type");
+  bgTypeEl?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>("button[data-bgtype]");
+    if (!btn) return;
+    const type = btn.dataset.bgtype as BackgroundSpec["type"];
+    selectBackgroundType(type);
+  });
+
+  // ── Solid ──
+  const solid = $<HTMLInputElement>("bf-bg-solid");
+  solid?.addEventListener("input", () => onBeautifyChange({ background: { type: "solid", color: solid.value } }));
+
+  // ── Gradient presets ──
+  const gradGrid = $("bf-gradient-grid");
+  if (gradGrid) {
+    for (const p of GRADIENT_PRESETS) {
+      const btn = document.createElement("button");
+      btn.className = "swatch";
+      btn.dataset.preset = p.id;
+      btn.title = p.name;
+      btn.style.backgroundImage = resolveBackgroundCss({ type: "gradient", presetId: p.id }).backgroundImage;
+      btn.addEventListener("click", () => onBeautifyChange({ background: { type: "gradient", presetId: p.id } }));
+      gradGrid.appendChild(btn);
+    }
+  }
+
+  // Custom gradient
+  $("bf-gradient-custom-toggle")?.addEventListener("click", () => {
+    const panel = $("bf-gradient-custom");
+    if (panel) panel.hidden = !panel.hidden;
+  });
+  const gFrom = $<HTMLInputElement>("bf-grad-from");
+  const gTo = $<HTMLInputElement>("bf-grad-to");
+  const applyCustomGradient = (): void => {
+    const angle = Number($<HTMLInputElement>("bf-grad-angle")?.value ?? 135);
+    onBeautifyChange({
+      background: {
+        type: "gradient",
+        custom: {
+          angle,
+          stops: [
+            { offset: 0, color: gFrom?.value ?? "#6a11cb" },
+            { offset: 1, color: gTo?.value ?? "#2575fc" },
+          ],
+        },
+      },
+    });
+  };
+  bindRange("bf-grad-angle", "bf-grad-angle-val", () => applyCustomGradient(), (v) => `${v}°`);
+  gFrom?.addEventListener("input", applyCustomGradient);
+  gTo?.addEventListener("input", applyCustomGradient);
+
+  // ── Image presets ──
+  const imgGrid = $("bf-image-grid");
+  if (imgGrid) {
+    for (const p of IMAGE_PRESETS) {
+      const btn = document.createElement("button");
+      btn.className = "swatch";
+      btn.dataset.preset = p.id;
+      btn.title = p.name;
+      btn.style.backgroundImage = resolveBackgroundCss({ type: "image", presetId: p.id }).backgroundImage;
+      btn.addEventListener("click", () => onBeautifyChange({ background: { type: "image", presetId: p.id } }));
+      imgGrid.appendChild(btn);
+    }
+  }
+
+  // ── Pattern overlay (separate layer on top of any background) ──
+  const patGrid = $("bf-pattern-grid");
+  const patColor = $<HTMLInputElement>("bf-pattern-color");
+  if (patGrid) {
+    const none = document.createElement("button");
+    none.className = "swatch none";
+    none.dataset.preset = "";
+    none.title = "No overlay";
+    none.textContent = "None";
+    none.addEventListener("click", () => onBeautifyChange({ pattern: { ...beautify.pattern, presetId: null } }));
+    patGrid.appendChild(none);
+
+    for (const p of PATTERN_PRESETS) {
+      const btn = document.createElement("button");
+      btn.className = "swatch";
+      btn.dataset.preset = p.id;
+      btn.title = p.name;
+      btn.style.backgroundColor = "#2c2c2c";
+      btn.style.backgroundImage = `url("${assetUrl(p.asset)}")`;
+      btn.style.backgroundRepeat = "repeat";
+      btn.addEventListener("click", () => onBeautifyChange({ pattern: { ...beautify.pattern, presetId: p.id } }));
+      patGrid.appendChild(btn);
+    }
+  }
+  patColor?.addEventListener("input", () => onBeautifyChange({ pattern: { ...beautify.pattern, color: patColor.value } }));
+  bindRange(
+    "bf-pattern-opacity",
+    "bf-pattern-opacity-val",
+    (v) => onBeautifyChange({ pattern: { ...beautify.pattern, opacity: v / 100 } }),
+    (v) => `${v}%`,
+  );
+
+  // ── Aspect segmented control ──
+  const aspectEl = $("bf-aspect");
+  aspectEl?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>("button[data-aspect]");
+    if (!btn) return;
+    const aspect = btn.dataset.aspect as BeautifySettings["aspect"];
+    onBeautifyChange({ aspect });
+    setActive(aspectEl, "aspect", aspect);
+  });
+
+  syncControlsFromState();
+}
+
+/** Switch background type, defaulting sub-settings the first time. */
+function selectBackgroundType(type: BackgroundSpec["type"]): void {
+  let background: BackgroundSpec;
+  switch (type) {
+    case "solid":
+      background = { type: "solid", color: $<HTMLInputElement>("bf-bg-solid")?.value ?? "#1e293b" };
+      break;
+    case "gradient":
+      background = { type: "gradient", presetId: GRADIENT_PRESETS[0]?.id ?? "sunset" };
+      break;
+    case "image":
+      background = { type: "image", presetId: IMAGE_PRESETS[0]?.id ?? "aurora" };
+      break;
+  }
+  onBeautifyChange({ background });
+  setActive($("bf-bg-type"), "bgtype", type);
+  showBackgroundPanel(type);
+  syncSwatchSelection();
+}
+
+/** Reflect the current beautify state onto every control widget. */
+function syncControlsFromState(): void {
+  setRange("bf-margin", "bf-margin-val", beautify.margin, String(beautify.margin));
+  setRange("bf-scale", "bf-scale-val", Math.round(beautify.scale * 100), `${Math.round(beautify.scale * 100)}%`);
+  setRange("bf-radius", "bf-radius-val", beautify.radius, String(beautify.radius));
+  setRange("bf-shadow-blur", "bf-shadow-blur-val", beautify.shadow.blur, String(beautify.shadow.blur));
+  setRange(
+    "bf-shadow-opacity",
+    "bf-shadow-opacity-val",
+    Math.round(beautify.shadow.opacity * 100),
+    `${Math.round(beautify.shadow.opacity * 100)}%`,
+  );
+  const toggle = $<HTMLInputElement>("bf-shadow-enabled");
+  if (toggle) toggle.checked = beautify.shadow.enabled;
+
+  setActive($("bf-bg-type"), "bgtype", beautify.background.type);
+  showBackgroundPanel(beautify.background.type);
+  setActive($("bf-aspect"), "aspect", beautify.aspect);
+
+  if (beautify.background.type === "solid") {
+    const solid = $<HTMLInputElement>("bf-bg-solid");
+    if (solid) solid.value = beautify.background.color;
+  }
+
+  // Pattern overlay controls
+  const patColor = $<HTMLInputElement>("bf-pattern-color");
+  if (patColor) patColor.value = beautify.pattern.color;
+  setRange(
+    "bf-pattern-opacity",
+    "bf-pattern-opacity-val",
+    Math.round(beautify.pattern.opacity * 100),
+    `${Math.round(beautify.pattern.opacity * 100)}%`,
+  );
+
+  syncSwatchSelection();
+}
+
+/** Highlight the active preset swatch in the background grids + pattern grid. */
+function syncSwatchSelection(): void {
+  const bg = beautify.background;
+  const bgId = bg.type === "gradient" && "presetId" in bg ? bg.presetId
+    : bg.type === "image" ? bg.presetId
+    : null;
+  for (const gridId of ["bf-gradient-grid", "bf-image-grid"]) {
+    const grid = $(gridId);
+    if (!grid) continue;
+    for (const btn of Array.from(grid.querySelectorAll<HTMLElement>("button.swatch"))) {
+      btn.classList.toggle("active", !!bgId && btn.dataset.preset === bgId);
+    }
+  }
+
+  // Pattern overlay grid: the "None" tile has data-preset="" and matches a null overlay.
+  const patGrid = $("bf-pattern-grid");
+  if (patGrid) {
+    const activePat = beautify.pattern.presetId ?? "";
+    for (const btn of Array.from(patGrid.querySelectorAll<HTMLElement>("button.swatch"))) {
+      btn.classList.toggle("active", (btn.dataset.preset ?? "") === activePat);
+    }
+  }
+}
+
+// ── Small control-binding helpers ──
+
+function bindRange(
+  inputId: string,
+  valueId: string,
+  onChange: (value: number) => void,
+  format: (value: number) => string,
+): void {
+  const input = $<HTMLInputElement>(inputId);
+  const label = $(valueId);
+  input?.addEventListener("input", () => {
+    const v = Number(input.value);
+    if (label) label.textContent = format(v);
+    onChange(v);
+  });
+}
+
+function setRange(inputId: string, valueId: string, value: number, formatted: string): void {
+  const input = $<HTMLInputElement>(inputId);
+  const label = $(valueId);
+  if (input) input.value = String(value);
+  if (label) label.textContent = formatted;
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────────
@@ -402,20 +704,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   overlayCanvas = document.getElementById("overlay") as HTMLCanvasElement;
 
   if (!baseCanvas || !overlayCanvas) {
-    console.error("Redact-It: canvas elements not found.");
+    console.error("Shotglow: canvas elements not found.");
     return;
   }
 
   const ctx = overlayCanvas.getContext("2d");
   if (!ctx) {
-    console.error("Redact-It: could not get overlay canvas context.");
+    console.error("Shotglow: could not get overlay canvas context.");
     return;
   }
   overlayCtx = ctx;
 
-  // ── Load strength from storage before rendering ─────────────────────────────
+  // ── Resolve preview-frame elements ──────────────────────────────────────────
+
+  const stage = document.getElementById("canvas-stage");
+  const outputFrame = document.getElementById("output-frame");
+  const patternLayer = document.getElementById("pattern-layer");
+  const wrapper = document.getElementById("frame-wrapper");
+  if (stage && outputFrame && patternLayer && wrapper) {
+    previewEls = { stage, outputFrame, patternLayer, wrapper };
+  }
+
+  // ── Load persisted settings before rendering ────────────────────────────────
 
   strength = await loadStrength();
+  beautify = await loadBeautify();
+  setupBeautifyControls();
   const slider = document.getElementById("strength-slider") as HTMLInputElement | null;
   const strengthValue = document.getElementById("strength-value");
   if (slider) {
@@ -424,7 +738,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     slider.addEventListener("input", () => {
       strength = Number(slider.value);
       if (strengthValue) strengthValue.textContent = String(strength);
-      saveStrength(strength).catch((err) => console.error("Redact-It: failed to save strength", err));
+      saveStrength(strength).catch((err) => console.error("Shotglow: failed to save strength", err));
     });
   }
 
@@ -439,26 +753,29 @@ document.addEventListener("DOMContentLoaded", async () => {
       const dataUrl: string | undefined = result[key];
 
       if (!dataUrl) {
-        console.error("Redact-It: no image data found for key", key);
+        console.error("Shotglow: no image data found for key", key);
       } else {
-        const img = await loadImageOntoCanvas(baseCanvas, dataUrl);
+        await loadImageOntoCanvas(baseCanvas, dataUrl);
 
         // Match overlay canvas dimensions to base
         overlayCanvas.width = baseCanvas.width;
         overlayCanvas.height = baseCanvas.height;
 
-        // Resize editor window to fit the image
-        resizeWindowToImage(img);
+        // Resize editor window to fit the beautified output
+        resizeWindowToContents();
+
+        // Render the beautify preview now that the image is loaded
+        applyPreviewNow();
 
         // Clean up session storage after successful load
         await chrome.storage.session.remove(key);
-        console.log("Redact-It: session key removed after load.");
+        console.log("Shotglow: session key removed after load.");
       }
     } catch (err) {
-      console.error("Redact-It: failed to load image from session storage", err);
+      console.error("Shotglow: failed to load image from session storage", err);
     }
   } else {
-    console.warn("Redact-It: no ?key= param found in editor URL.");
+    console.warn("Shotglow: no ?key= param found in editor URL.");
   }
 
   // ── Wire up mouse events ────────────────────────────────────────────────────
@@ -471,17 +788,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.addEventListener("keydown", onKeyDown);
 
+  // Re-fit the preview when the window/pane size changes
+  window.addEventListener("resize", applyPreviewNow);
+
   // ── Wire up toolbar buttons ─────────────────────────────────────────────────
 
   document.getElementById("btn-copy")?.addEventListener("click", () => {
-    onCopyRedacted().catch((err) => console.error("Redact-It: copy failed", err));
+    onCopyRedacted().catch((err) => console.error("Shotglow: copy failed", err));
   });
   document.getElementById("btn-download")?.addEventListener("click", () => {
-    onDownload().catch((err) => console.error("Redact-It: download failed", err));
+    onDownload().catch((err) => console.error("Shotglow: download failed", err));
   });
 
   // Initial draw (empty state)
   draw();
 
-  console.log("Redact-It editor ready.", { baseCanvas, overlayCanvas });
+  console.log("Shotglow editor ready.", { baseCanvas, overlayCanvas });
 });

@@ -1,24 +1,25 @@
 {
-  "name": "redact-it",
+  "name": "shotglow",
   "version": "0.1.0",
   "description": "Chrome MV3 extension to redact sensitive regions from images before sharing.",
   "license": "MIT",
   "author": "Corey Epstein",
   "repository": {
     "type": "git",
-    "url": "https://github.com/coreyepstein/redact-it.git"
+    "url": "https://github.com/coreyepstein/shotglow.git"
   },
   "bugs": {
-    "url": "https://github.com/coreyepstein/redact-it/issues"
+    "url": "https://github.com/coreyepstein/shotglow/issues"
   },
-  "homepage": "https://github.com/coreyepstein/redact-it#readme",
+  "homepage": "https://github.com/coreyepstein/shotglow#readme",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "gen:wallpapers": "node scripts/gen-wallpapers.mjs"
   },
   "devDependencies": {
     "@types/bun": "^1.3.12",
