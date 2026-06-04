@@ -110,9 +110,23 @@ body {
   flex: 0 0 auto;
 }
 
+/* Pattern overlay: above the background, behind the image card. Tinted via
+   background-color + an SVG mask; strength via opacity. */
+#pattern-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  mask-repeat: repeat;
+  -webkit-mask-repeat: repeat;
+  mask-size: auto;
+  -webkit-mask-size: auto;
+}
+
 /* The image card: rounded corners + shadow, clips the canvases. */
 #frame-wrapper {
   position: absolute;
+  z-index: 1;
   overflow: hidden;
   background: #000;
 }
@@ -262,6 +276,16 @@ body {
 .swatch.active {
   border-color: #fff;
   box-shadow: 0 0 0 1px #e53e3e;
+}
+
+.swatch.none {
+  background: #2c2c2c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 10px;
+  line-height: 1;
 }
 
 .link-btn {

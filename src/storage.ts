@@ -3,9 +3,9 @@
 import type { BeautifySettings } from "./types.js";
 import { DEFAULT_BEAUTIFY, mergeBeautify } from "./beautify.js";
 
-const STRENGTH_KEY = "redact-it.strength";
+const STRENGTH_KEY = "shotglow.strength";
 const DEFAULT_STRENGTH = 3;
-const BEAUTIFY_KEY = "redact-it.beautify";
+const BEAUTIFY_KEY = "shotglow.beautify";
 
 export async function loadStrength(): Promise<number> {
   const result = await chrome.storage.local.get(STRENGTH_KEY);

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Dev-time wallpaper generator for Redact-It background presets.
+// Dev-time wallpaper generator for Shotglow background presets.
 //
 // Image generation cannot run in-browser, so bundled wallpapers are produced
 // here at dev time and committed into assets/backgrounds/. This is intentionally

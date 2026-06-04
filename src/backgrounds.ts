@@ -1,10 +1,9 @@
-import type { BackgroundSpec, GradientStop } from "./types.js";
+import type { BackgroundSpec, PatternOverlay, GradientStop } from "./types.js";
 
-// ── Background preset registry ───────────────────────────────────────────────
+// ── Background + overlay preset registry ─────────────────────────────────────
 // Single source of truth shared by the controls UI (to render swatches) and the
-// export pipeline (to resolve assets). Gradients are defined as plain sRGB hex
-// stops with a CSS angle so the CSS preview and the canvas export interpolate
-// the same way (see core/clipboard makeGradientEndpoints + parity notes).
+// export pipeline (to resolve assets). Gradients are plain sRGB hex stops with a
+// CSS angle so the CSS preview and the canvas export interpolate the same way.
 
 export type GradientPreset = {
   id: string;
@@ -16,15 +15,13 @@ export type GradientPreset = {
 export type PatternPreset = {
   id: string;
   name: string;
-  asset: string; // tileable image under assets/patterns/
-  defaultBaseColor: string;
+  asset: string; // tileable, solid-stroke SVG under assets/patterns/ (tinted at runtime)
 };
 
 export type ImagePreset = {
   id: string;
   name: string;
   asset: string; // full wallpaper under assets/backgrounds/
-  thumb: string; // small thumbnail for the picker grid
 };
 
 export const GRADIENT_PRESETS: GradientPreset[] = [
@@ -49,17 +46,20 @@ export const GRADIENT_PRESETS: GradientPreset[] = [
 ];
 
 export const PATTERN_PRESETS: PatternPreset[] = [
-  { id: "dots", name: "Dots", asset: "assets/patterns/dots.svg", defaultBaseColor: "#1e293b" },
-  { id: "grid", name: "Grid", asset: "assets/patterns/grid.svg", defaultBaseColor: "#1e293b" },
-  { id: "diagonal", name: "Diagonal", asset: "assets/patterns/diagonal.svg", defaultBaseColor: "#312e4e" },
-  { id: "crosshatch", name: "Crosshatch", asset: "assets/patterns/crosshatch.svg", defaultBaseColor: "#0f2027" },
+  { id: "dots", name: "Dots", asset: "assets/patterns/dots.svg" },
+  { id: "grid", name: "Grid", asset: "assets/patterns/grid.svg" },
+  { id: "diagonal", name: "Diagonal", asset: "assets/patterns/diagonal.svg" },
+  { id: "crosshatch", name: "Crosshatch", asset: "assets/patterns/crosshatch.svg" },
 ];
 
-// Wallpaper image presets are generated at dev time via `bun run gen:wallpapers`
-// (Codex CLI imagegen) and dropped into assets/backgrounds/. Add an entry here
-// per generated wallpaper; until then the Image background tab shows an empty
-// state. See scripts/gen-wallpapers.mjs for the prompt manifest.
-export const IMAGE_PRESETS: ImagePreset[] = [];
+export const IMAGE_PRESETS: ImagePreset[] = [
+  { id: "aurora", name: "Aurora", asset: "assets/backgrounds/aurora.svg" },
+  { id: "sunset", name: "Sunset", asset: "assets/backgrounds/sunset.svg" },
+  { id: "ocean", name: "Ocean", asset: "assets/backgrounds/ocean.svg" },
+  { id: "dusk", name: "Dusk", asset: "assets/backgrounds/dusk.svg" },
+  { id: "forest", name: "Forest", asset: "assets/backgrounds/forest.svg" },
+  { id: "graphite", name: "Graphite", asset: "assets/backgrounds/graphite.svg" },
+];
 
 export function getGradientPreset(id: string): GradientPreset | undefined {
   return GRADIENT_PRESETS.find((p) => p.id === id);
@@ -103,7 +103,7 @@ function gradientCss(angle: number, stops: GradientStop[]): string {
   return `linear-gradient(${angle}deg, ${parts})`;
 }
 
-/** Build the CSS background properties for a spec (for the editor preview). */
+/** Build the CSS background properties for the base background (editor preview). */
 export function resolveBackgroundCss(bg: BackgroundSpec): BackgroundCss {
   switch (bg.type) {
     case "solid":
@@ -115,15 +115,6 @@ export function resolveBackgroundCss(bg: BackgroundSpec): BackgroundCss {
       const p = getGradientPreset(bg.presetId);
       if (!p) return { ...EMPTY_CSS, backgroundColor: "#1a1a1a" };
       return { ...EMPTY_CSS, backgroundImage: gradientCss(p.angle, p.stops) };
-    }
-    case "pattern": {
-      const p = getPatternPreset(bg.presetId);
-      return {
-        ...EMPTY_CSS,
-        backgroundColor: bg.baseColor,
-        backgroundImage: p ? `url("${assetUrl(p.asset)}")` : "none",
-        backgroundRepeat: "repeat",
-      };
     }
     case "image": {
       const p = getImagePreset(bg.presetId);
@@ -140,11 +131,32 @@ export function resolveBackgroundCss(bg: BackgroundSpec): BackgroundCss {
   }
 }
 
+/** CSS for the pattern overlay layer (a separate element above the background). */
+export type PatternCss = {
+  display: string;
+  maskImage: string;
+  backgroundColor: string;
+  opacity: string;
+};
+
+export function resolvePatternCss(p: PatternOverlay): PatternCss {
+  const preset = p.presetId ? getPatternPreset(p.presetId) : undefined;
+  if (!preset) {
+    return { display: "none", maskImage: "none", backgroundColor: "transparent", opacity: "0" };
+  }
+  return {
+    display: "block",
+    maskImage: `url("${assetUrl(preset.asset)}")`,
+    backgroundColor: p.color,
+    opacity: String(p.opacity),
+  };
+}
+
 // ── Asset resolution (export) ────────────────────────────────────────────────
 
-export type ResolvedBackgroundAssets = {
-  patternBitmap?: CanvasImageSource;
-  imageBitmap?: CanvasImageSource;
+export type ResolvedAssets = {
+  baseImage?: CanvasImageSource;
+  patternImage?: CanvasImageSource;
 };
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>();
@@ -155,37 +167,37 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   const promise = new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Failed to load background asset: ${url}`));
+    img.onerror = () => reject(new Error(`Failed to load asset: ${url}`));
     img.src = url;
   });
   imageCache.set(url, promise);
   return promise;
 }
 
+async function tryLoad(url: string): Promise<HTMLImageElement | undefined> {
+  try {
+    return await loadImage(url);
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * Pre-decode any bitmaps a background needs so buildComposite can stay
- * synchronous. Solid/gradient backgrounds resolve to {} (nothing to load).
+ * Pre-decode any bitmaps the export needs (base wallpaper image + pattern tile)
+ * so buildComposite can stay synchronous. Solid/gradient with no pattern → {}.
  */
-export async function loadBackgroundAssets(bg: BackgroundSpec): Promise<ResolvedBackgroundAssets> {
-  if (bg.type === "pattern") {
-    const p = getPatternPreset(bg.presetId);
-    if (p) {
-      try {
-        return { patternBitmap: await loadImage(assetUrl(p.asset)) };
-      } catch {
-        return {};
-      }
-    }
+export async function loadAssets(settings: {
+  background: BackgroundSpec;
+  pattern: PatternOverlay;
+}): Promise<ResolvedAssets> {
+  const out: ResolvedAssets = {};
+  if (settings.background.type === "image") {
+    const p = getImagePreset(settings.background.presetId);
+    if (p) out.baseImage = await tryLoad(assetUrl(p.asset));
   }
-  if (bg.type === "image") {
-    const p = getImagePreset(bg.presetId);
-    if (p) {
-      try {
-        return { imageBitmap: await loadImage(assetUrl(p.asset)) };
-      } catch {
-        return {};
-      }
-    }
+  if (settings.pattern.presetId) {
+    const p = getPatternPreset(settings.pattern.presetId);
+    if (p) out.patternImage = await tryLoad(assetUrl(p.asset));
   }
-  return {};
+  return out;
 }

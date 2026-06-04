@@ -15,6 +15,7 @@ function settings(partial: Partial<BeautifySettings>): BeautifySettings {
     radius: 0,
     shadow: { enabled: false, blur: 0, opacity: 0, offsetX: 0, offsetY: 0 },
     background: { type: "solid", color: "#000" },
+    pattern: { presetId: null, color: "#ffffff", opacity: 0 },
     aspect: "auto",
     ...partial,
   };

@@ -1,6 +1,6 @@
 import type { BlobBridgeMessage, BlobBridgeResponse } from "./types.js";
 
-console.log("Redact-It content script loaded.");
+console.log("Shotglow content script loaded.");
 
 /**
  * Blob URL bridge: called by background service worker via chrome.scripting.executeScript.

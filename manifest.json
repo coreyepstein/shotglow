@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Redact-It",
+  "name": "Shotglow",
   "version": "0.1.0",
   "description": "Redact sensitive regions from images before sharing.",
   "background": {
@@ -15,7 +15,7 @@
     }
   ],
   "action": {
-    "default_title": "Redact-It"
+    "default_title": "Shotglow"
   },
   "permissions": [
     "contextMenus",

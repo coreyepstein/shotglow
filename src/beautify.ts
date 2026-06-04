@@ -1,6 +1,6 @@
-import type { BeautifySettings, BackgroundSpec, ShadowSpec, AspectPreset, GradientStop } from "./types.js";
+import type { BeautifySettings, BackgroundSpec, PatternOverlay, ShadowSpec, AspectPreset, GradientStop } from "./types.js";
 import { computeOutputLayout, type OutputLayout } from "./layout.js";
-import { resolveBackgroundCss } from "./backgrounds.js";
+import { resolveBackgroundCss, resolvePatternCss } from "./backgrounds.js";
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -10,6 +10,7 @@ export const DEFAULT_BEAUTIFY: BeautifySettings = {
   radius: 12,
   shadow: { enabled: true, blur: 40, opacity: 0.35, offsetX: 0, offsetY: 20 },
   background: { type: "gradient", presetId: "sunset" },
+  pattern: { presetId: null, color: "#ffffff", opacity: 0.12 },
   aspect: "auto",
 };
 
@@ -21,6 +22,7 @@ export const BOUNDS = {
   shadowBlur: { min: 0, max: 200 },
   shadowOpacity: { min: 0, max: 1 },
   shadowOffset: { min: -200, max: 200 },
+  patternOpacity: { min: 0, max: 1 },
 } as const;
 
 const ASPECTS: AspectPreset[] = ["auto", "1:1", "4:3", "16:9"];
@@ -77,15 +79,22 @@ function mergeBackground(base: BackgroundSpec, raw: unknown): BackgroundSpec {
       }
       return isString(r.presetId) ? { type: "gradient", presetId: r.presetId } : { ...base };
     }
-    case "pattern":
-      return isString(r.presetId) && isString(r.baseColor)
-        ? { type: "pattern", presetId: r.presetId, baseColor: r.baseColor }
-        : { ...base };
     case "image":
       return isString(r.presetId) ? { type: "image", presetId: r.presetId } : { ...base };
     default:
       return { ...base };
   }
+}
+
+function mergePattern(base: PatternOverlay, raw: unknown): PatternOverlay {
+  if (!raw || typeof raw !== "object") return { ...base };
+  const r = raw as Record<string, unknown>;
+  const presetId = isString(r.presetId) ? r.presetId : r.presetId === null ? null : base.presetId;
+  return {
+    presetId,
+    color: isString(r.color) ? r.color : base.color,
+    opacity: numIn(r.opacity, base.opacity, BOUNDS.patternOpacity.min, BOUNDS.patternOpacity.max),
+  };
 }
 
 /**
@@ -95,7 +104,7 @@ function mergeBackground(base: BackgroundSpec, raw: unknown): BackgroundSpec {
  */
 export function mergeBeautify(base: BeautifySettings, loaded: unknown): BeautifySettings {
   if (!loaded || typeof loaded !== "object") {
-    return { ...base, shadow: { ...base.shadow }, background: { ...base.background } };
+    return { ...base, shadow: { ...base.shadow }, background: { ...base.background }, pattern: { ...base.pattern } };
   }
   const l = loaded as Record<string, unknown>;
   return {
@@ -104,6 +113,7 @@ export function mergeBeautify(base: BeautifySettings, loaded: unknown): Beautify
     radius: numIn(l.radius, base.radius, BOUNDS.radius.min, BOUNDS.radius.max),
     shadow: mergeShadow(base.shadow, l.shadow),
     background: mergeBackground(base.background, l.background),
+    pattern: mergePattern(base.pattern, l.pattern),
     aspect: ASPECTS.includes(l.aspect as AspectPreset) ? (l.aspect as AspectPreset) : base.aspect,
   };
 }
@@ -129,6 +139,7 @@ export function debounce<A extends unknown[]>(fn: (...args: A) => void, ms: numb
 export type PreviewEls = {
   stage: HTMLElement; // visible pane (clips + centers the output frame)
   outputFrame: HTMLElement; // represents the full output canvas; carries the background
+  patternLayer: HTMLElement; // pattern overlay, above background, behind the card
   wrapper: HTMLElement; // the image card (radius + shadow); holds the canvases
 };
 
@@ -159,6 +170,14 @@ export function applyPreview(
   els.outputFrame.style.backgroundSize = bg.backgroundSize;
   els.outputFrame.style.backgroundRepeat = bg.backgroundRepeat;
   els.outputFrame.style.backgroundPosition = bg.backgroundPosition;
+
+  // Pattern overlay on its own layer (above the background, behind the card).
+  const pat = resolvePatternCss(settings.pattern);
+  els.patternLayer.style.display = pat.display;
+  els.patternLayer.style.backgroundColor = pat.backgroundColor;
+  els.patternLayer.style.opacity = pat.opacity;
+  els.patternLayer.style.maskImage = pat.maskImage;
+  els.patternLayer.style.webkitMaskImage = pat.maskImage;
 
   // Output frame represents the full output canvas at 1:1 CSS px...
   els.outputFrame.style.width = `${layout.canvasW}px`;

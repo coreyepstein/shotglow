@@ -19,13 +19,22 @@ export type SessionImageKey = string;
 /** A single gradient color stop. `offset` is 0..1. */
 export type GradientStop = { offset: number; color: string };
 
-/** What is drawn behind the (scaled, framed) image. */
+/** The base layer drawn behind the (scaled, framed) image. */
 export type BackgroundSpec =
   | { type: "solid"; color: string }
   | { type: "gradient"; presetId: string }
   | { type: "gradient"; custom: { angle: number; stops: GradientStop[] } }
-  | { type: "pattern"; presetId: string; baseColor: string }
   | { type: "image"; presetId: string };
+
+/**
+ * Optional repeating pattern drawn ON TOP of the background (and behind the
+ * image card) — composes over any solid/gradient/image base.
+ */
+export type PatternOverlay = {
+  presetId: string | null; // null = no overlay
+  color: string;
+  opacity: number; // 0..1
+};
 
 /** Drop shadow applied to the image card. Dimensions are in output pixels. */
 export type ShadowSpec = {
@@ -46,6 +55,7 @@ export type BeautifySettings = {
   radius: number; // corner radius px applied to the image rect
   shadow: ShadowSpec;
   background: BackgroundSpec;
+  pattern: PatternOverlay;
   aspect: AspectPreset;
 };
 

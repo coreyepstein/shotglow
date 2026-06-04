@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Redact-It</title>
+    <title>Shotglow</title>
     <link rel="stylesheet" href="./editor.css" />
   </head>
   <body>
@@ -16,12 +16,13 @@
       <span id="rect-count">0 rects</span>
       <span style="flex: 1"></span>
       <button id="btn-download">Download</button>
-      <button id="btn-copy" class="primary">Copy Redacted</button>
+      <button id="btn-copy" class="primary">Copy</button>
     </div>
 
     <div id="editor-main">
       <div id="canvas-stage">
         <div id="output-frame">
+          <div id="pattern-layer"></div>
           <div id="frame-wrapper">
             <canvas id="base"></canvas>
             <canvas id="overlay"></canvas>
@@ -63,7 +64,6 @@
           <div id="bf-bg-type" class="segmented">
             <button type="button" data-bgtype="solid">Solid</button>
             <button type="button" data-bgtype="gradient" class="active">Gradient</button>
-            <button type="button" data-bgtype="pattern">Pattern</button>
             <button type="button" data-bgtype="image">Image</button>
           </div>
 
@@ -93,21 +93,22 @@
             </div>
           </div>
 
-          <div id="bf-panel-pattern" class="bg-panel" hidden>
-            <div id="bf-pattern-grid" class="swatch-grid"></div>
-            <label class="ctl ctl-row">
-              <span class="ctl-label">Base color</span>
-              <input type="color" id="bf-pattern-color" value="#1e293b" />
-            </label>
-          </div>
-
           <div id="bf-panel-image" class="bg-panel" hidden>
             <div id="bf-image-grid" class="swatch-grid"></div>
-            <p id="bf-image-empty" class="empty-note">
-              No wallpapers bundled yet. Generate them with
-              <code>bun run gen:wallpapers</code>.
-            </p>
           </div>
+        </section>
+
+        <section class="control-section">
+          <h2>Overlay</h2>
+          <div id="bf-pattern-grid" class="swatch-grid"></div>
+          <label class="ctl ctl-row">
+            <span class="ctl-label">Pattern color</span>
+            <input type="color" id="bf-pattern-color" value="#ffffff" />
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Pattern strength <span id="bf-pattern-opacity-val" class="ctl-val">12%</span></span>
+            <input type="range" id="bf-pattern-opacity" min="0" max="100" step="1" value="12" />
+          </label>
         </section>
 
         <section class="control-section">

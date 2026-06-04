@@ -60,7 +60,10 @@ function makeSpyCtx(canvas: { width: number; height: number }) {
       calls.push({ method: "createLinearGradient", args });
       return { addColorStop: () => {} };
     },
-    createPattern: () => ({}),
+    createPattern: (...args: unknown[]) => {
+      calls.push({ method: "createPattern", args });
+      return {};
+    },
   };
   return { ctx, calls };
 }
@@ -95,6 +98,7 @@ function settings(partial: Partial<BeautifySettings>): BeautifySettings {
     radius: 0,
     shadow: { enabled: false, blur: 0, opacity: 0, offsetX: 0, offsetY: 0 },
     background: { type: "solid", color: "#123456" },
+    pattern: { presetId: null, color: "#ffffff", opacity: 0 },
     aspect: "auto",
     ...partial,
   };
@@ -163,5 +167,12 @@ describe("buildComposite", () => {
     const out = buildComposite(baseCanvas(200, 200), [], 3, s, {});
     expect(out.width).toBe(220);
     expect(out.height).toBe(220);
+  });
+
+  it("does not draw a pattern overlay when none is selected", () => {
+    const s = settings({ pattern: { presetId: null, color: "#fff", opacity: 0.2 } });
+    buildComposite(baseCanvas(400, 300), [], 3, s, {});
+    const seq = lastSpy.calls.map((c) => c.method);
+    expect(seq).not.toContain("createPattern");
   });
 });

@@ -62,6 +62,17 @@ describe("mergeBeautify", () => {
     const merged = mergeBeautify(DEFAULT_BEAUTIFY, { aspect: "21:9" as never });
     expect(merged.aspect).toBe(DEFAULT_BEAUTIFY.aspect);
   });
+
+  it("merges a pattern overlay and clamps its opacity", () => {
+    const merged = mergeBeautify(DEFAULT_BEAUTIFY, { pattern: { presetId: "dots", color: "#abcdef", opacity: 5 } });
+    expect(merged.pattern).toEqual({ presetId: "dots", color: "#abcdef", opacity: 1 });
+  });
+
+  it("preserves a null pattern presetId (no overlay)", () => {
+    const merged = mergeBeautify(DEFAULT_BEAUTIFY, { pattern: { presetId: null } });
+    expect(merged.pattern.presetId).toBeNull();
+    expect(merged.pattern.color).toBe(DEFAULT_BEAUTIFY.pattern.color);
+  });
 });
 
 describe("debounce", () => {

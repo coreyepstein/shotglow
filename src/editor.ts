@@ -2,9 +2,10 @@ import type { Rect, BeautifySettings, BackgroundSpec } from "./types.js";
 import { copyRedactedToClipboard, downloadRedacted } from "./clipboard.js";
 import { loadStrength, saveStrength, loadBeautify, saveBeautify } from "./storage.js";
 import { DEFAULT_BEAUTIFY, applyPreview, debounce, type PreviewEls } from "./beautify.js";
-import { GRADIENT_PRESETS, PATTERN_PRESETS, IMAGE_PRESETS, resolveBackgroundCss } from "./backgrounds.js";
+import { computeOutputLayout } from "./layout.js";
+import { GRADIENT_PRESETS, PATTERN_PRESETS, IMAGE_PRESETS, resolveBackgroundCss, assetUrl } from "./backgrounds.js";
 
-console.log("Redact-It editor loaded.");
+console.log("Shotglow editor loaded.");
 
 // ── Undo/Redo types ────────────────────────────────────────────────────────────
 
@@ -32,7 +33,7 @@ let overlayCtx: CanvasRenderingContext2D;
 let previewEls: PreviewEls | null = null;
 
 const saveBeautifyDebounced = debounce((s: BeautifySettings) => {
-  saveBeautify(s).catch((err) => console.error("Redact-It: failed to save beautify settings", err));
+  saveBeautify(s).catch((err) => console.error("Shotglow: failed to save beautify settings", err));
 }, 250);
 
 // ── Drawing ────────────────────────────────────────────────────────────────────
@@ -308,13 +309,13 @@ function onKeyDown(e: KeyboardEvent): void {
 
   if (action === "copy") {
     e.preventDefault();
-    onCopyRedacted().catch((err) => console.error("Redact-It: copy failed", err));
+    onCopyRedacted().catch((err) => console.error("Shotglow: copy failed", err));
     return;
   }
 
   if (action === "download") {
     e.preventDefault();
-    onDownload().catch((err) => console.error("Redact-It: download failed", err));
+    onDownload().catch((err) => console.error("Shotglow: download failed", err));
     return;
   }
 
@@ -336,19 +337,23 @@ function onKeyDown(e: KeyboardEvent): void {
 
 // ── Window sizing ──────────────────────────────────────────────────────────────
 
-function resizeWindowToImage(img: HTMLImageElement): void {
-  const chrome_chrome = 60; // approximate toolbar/chrome pixels
-  const minW = 400;
-  const minH = 300;
+/**
+ * Size the editor window to fit the beautified output (framed image + margins),
+ * plus the controls panel and toolbar, clamped to the screen. The preview
+ * fit-scales within whatever space remains, so this just aims for a comfortable
+ * default that shows the whole composition.
+ */
+function resizeWindowToContents(): void {
+  const PANEL = 280; // controls panel width
+  const TOOLBAR = 56; // toolbar height
+  const PAD = 48; // breathing room around the stage
+  const minW = 640;
+  const minH = 480;
 
-  const w = Math.max(
-    minW,
-    Math.min(Math.round(img.naturalWidth + 20), Math.round(screen.availWidth * 0.9))
-  );
-  const h = Math.max(
-    minH,
-    Math.min(Math.round(img.naturalHeight + chrome_chrome), Math.round(screen.availHeight * 0.9))
-  );
+  const layout = computeOutputLayout(beautify, baseCanvas.width, baseCanvas.height);
+
+  const w = Math.max(minW, Math.min(layout.canvasW + PANEL + PAD, Math.round(screen.availWidth * 0.92)));
+  const h = Math.max(minH, Math.min(layout.canvasH + TOOLBAR + PAD, Math.round(screen.availHeight * 0.92)));
 
   chrome.windows.update(chrome.windows.WINDOW_ID_CURRENT, { width: w, height: h });
 }
@@ -401,7 +406,7 @@ async function onCopyRedacted(): Promise<void> {
     await copyRedactedToClipboard(baseCanvas, rects, strength, beautify);
     showToast("Copied to clipboard", "success");
   } catch (err) {
-    console.error("Redact-It: clipboard write failed", err);
+    console.error("Shotglow: clipboard write failed", err);
     showToast("Copy failed — use Download instead", "error");
   }
 }
@@ -410,7 +415,7 @@ async function onDownload(): Promise<void> {
   try {
     await downloadRedacted(baseCanvas, rects, strength, beautify);
   } catch (err) {
-    console.error("Redact-It: download failed", err);
+    console.error("Shotglow: download failed", err);
     showToast("Download failed", "error");
   }
 }
@@ -427,7 +432,7 @@ function applyPreviewNow(): void {
 function onBeautifyChange(patch: Partial<BeautifySettings>): void {
   beautify = { ...beautify, ...patch };
   applyPreviewNow();
-  if (patch.background) syncSwatchSelection();
+  if (patch.background || patch.pattern) syncSwatchSelection();
   saveBeautifyDebounced(beautify);
 }
 
@@ -445,7 +450,7 @@ function setActive(container: HTMLElement | null, attr: string, value: string): 
 
 /** Show only the background sub-panel matching the active type. */
 function showBackgroundPanel(type: BackgroundSpec["type"]): void {
-  for (const t of ["solid", "gradient", "pattern", "image"]) {
+  for (const t of ["solid", "gradient", "image"]) {
     const panel = $(`bf-panel-${t}`);
     if (panel) panel.hidden = t !== type;
   }
@@ -528,35 +533,8 @@ function setupBeautifyControls(): void {
   gFrom?.addEventListener("input", applyCustomGradient);
   gTo?.addEventListener("input", applyCustomGradient);
 
-  // ── Pattern presets ──
-  const patGrid = $("bf-pattern-grid");
-  const patColor = $<HTMLInputElement>("bf-pattern-color");
-  if (patGrid) {
-    for (const p of PATTERN_PRESETS) {
-      const btn = document.createElement("button");
-      btn.className = "swatch";
-      btn.dataset.preset = p.id;
-      btn.title = p.name;
-      const css = resolveBackgroundCss({ type: "pattern", presetId: p.id, baseColor: p.defaultBaseColor });
-      btn.style.backgroundColor = css.backgroundColor;
-      btn.style.backgroundImage = css.backgroundImage;
-      btn.style.backgroundRepeat = "repeat";
-      btn.addEventListener("click", () => {
-        const baseColor = patColor?.value ?? p.defaultBaseColor;
-        onBeautifyChange({ background: { type: "pattern", presetId: p.id, baseColor } });
-      });
-      patGrid.appendChild(btn);
-    }
-  }
-  patColor?.addEventListener("input", () => {
-    if (beautify.background.type === "pattern") {
-      onBeautifyChange({ background: { ...beautify.background, baseColor: patColor.value } });
-    }
-  });
-
   // ── Image presets ──
   const imgGrid = $("bf-image-grid");
-  const imgEmpty = $("bf-image-empty");
   if (imgGrid) {
     for (const p of IMAGE_PRESETS) {
       const btn = document.createElement("button");
@@ -567,8 +545,39 @@ function setupBeautifyControls(): void {
       btn.addEventListener("click", () => onBeautifyChange({ background: { type: "image", presetId: p.id } }));
       imgGrid.appendChild(btn);
     }
-    if (imgEmpty) imgEmpty.hidden = IMAGE_PRESETS.length > 0;
   }
+
+  // ── Pattern overlay (separate layer on top of any background) ──
+  const patGrid = $("bf-pattern-grid");
+  const patColor = $<HTMLInputElement>("bf-pattern-color");
+  if (patGrid) {
+    const none = document.createElement("button");
+    none.className = "swatch none";
+    none.dataset.preset = "";
+    none.title = "No overlay";
+    none.textContent = "None";
+    none.addEventListener("click", () => onBeautifyChange({ pattern: { ...beautify.pattern, presetId: null } }));
+    patGrid.appendChild(none);
+
+    for (const p of PATTERN_PRESETS) {
+      const btn = document.createElement("button");
+      btn.className = "swatch";
+      btn.dataset.preset = p.id;
+      btn.title = p.name;
+      btn.style.backgroundColor = "#2c2c2c";
+      btn.style.backgroundImage = `url("${assetUrl(p.asset)}")`;
+      btn.style.backgroundRepeat = "repeat";
+      btn.addEventListener("click", () => onBeautifyChange({ pattern: { ...beautify.pattern, presetId: p.id } }));
+      patGrid.appendChild(btn);
+    }
+  }
+  patColor?.addEventListener("input", () => onBeautifyChange({ pattern: { ...beautify.pattern, color: patColor.value } }));
+  bindRange(
+    "bf-pattern-opacity",
+    "bf-pattern-opacity-val",
+    (v) => onBeautifyChange({ pattern: { ...beautify.pattern, opacity: v / 100 } }),
+    (v) => `${v}%`,
+  );
 
   // ── Aspect segmented control ──
   const aspectEl = $("bf-aspect");
@@ -593,15 +602,8 @@ function selectBackgroundType(type: BackgroundSpec["type"]): void {
     case "gradient":
       background = { type: "gradient", presetId: GRADIENT_PRESETS[0]?.id ?? "sunset" };
       break;
-    case "pattern": {
-      const first = PATTERN_PRESETS[0];
-      background = { type: "pattern", presetId: first?.id ?? "dots", baseColor: first?.defaultBaseColor ?? "#1e293b" };
-      break;
-    }
     case "image":
-      background = IMAGE_PRESETS[0]
-        ? { type: "image", presetId: IMAGE_PRESETS[0].id }
-        : beautify.background; // no wallpapers: keep current, just show the panel
+      background = { type: "image", presetId: IMAGE_PRESETS[0]?.id ?? "aurora" };
       break;
   }
   onBeautifyChange({ background });
@@ -633,25 +635,40 @@ function syncControlsFromState(): void {
     const solid = $<HTMLInputElement>("bf-bg-solid");
     if (solid) solid.value = beautify.background.color;
   }
-  if (beautify.background.type === "pattern") {
-    const patColor = $<HTMLInputElement>("bf-pattern-color");
-    if (patColor) patColor.value = beautify.background.baseColor;
-  }
+
+  // Pattern overlay controls
+  const patColor = $<HTMLInputElement>("bf-pattern-color");
+  if (patColor) patColor.value = beautify.pattern.color;
+  setRange(
+    "bf-pattern-opacity",
+    "bf-pattern-opacity-val",
+    Math.round(beautify.pattern.opacity * 100),
+    `${Math.round(beautify.pattern.opacity * 100)}%`,
+  );
+
   syncSwatchSelection();
 }
 
-/** Highlight the active preset swatch within the current background panel. */
+/** Highlight the active preset swatch in the background grids + pattern grid. */
 function syncSwatchSelection(): void {
   const bg = beautify.background;
-  const activeId = bg.type === "gradient" && "presetId" in bg ? bg.presetId
-    : bg.type === "pattern" ? bg.presetId
+  const bgId = bg.type === "gradient" && "presetId" in bg ? bg.presetId
     : bg.type === "image" ? bg.presetId
     : null;
-  for (const gridId of ["bf-gradient-grid", "bf-pattern-grid", "bf-image-grid"]) {
+  for (const gridId of ["bf-gradient-grid", "bf-image-grid"]) {
     const grid = $(gridId);
     if (!grid) continue;
     for (const btn of Array.from(grid.querySelectorAll<HTMLElement>("button.swatch"))) {
-      btn.classList.toggle("active", !!activeId && btn.dataset.preset === activeId);
+      btn.classList.toggle("active", !!bgId && btn.dataset.preset === bgId);
+    }
+  }
+
+  // Pattern overlay grid: the "None" tile has data-preset="" and matches a null overlay.
+  const patGrid = $("bf-pattern-grid");
+  if (patGrid) {
+    const activePat = beautify.pattern.presetId ?? "";
+    for (const btn of Array.from(patGrid.querySelectorAll<HTMLElement>("button.swatch"))) {
+      btn.classList.toggle("active", (btn.dataset.preset ?? "") === activePat);
     }
   }
 }
@@ -687,13 +704,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   overlayCanvas = document.getElementById("overlay") as HTMLCanvasElement;
 
   if (!baseCanvas || !overlayCanvas) {
-    console.error("Redact-It: canvas elements not found.");
+    console.error("Shotglow: canvas elements not found.");
     return;
   }
 
   const ctx = overlayCanvas.getContext("2d");
   if (!ctx) {
-    console.error("Redact-It: could not get overlay canvas context.");
+    console.error("Shotglow: could not get overlay canvas context.");
     return;
   }
   overlayCtx = ctx;
@@ -702,9 +719,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const stage = document.getElementById("canvas-stage");
   const outputFrame = document.getElementById("output-frame");
+  const patternLayer = document.getElementById("pattern-layer");
   const wrapper = document.getElementById("frame-wrapper");
-  if (stage && outputFrame && wrapper) {
-    previewEls = { stage, outputFrame, wrapper };
+  if (stage && outputFrame && patternLayer && wrapper) {
+    previewEls = { stage, outputFrame, patternLayer, wrapper };
   }
 
   // ── Load persisted settings before rendering ────────────────────────────────
@@ -720,7 +738,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     slider.addEventListener("input", () => {
       strength = Number(slider.value);
       if (strengthValue) strengthValue.textContent = String(strength);
-      saveStrength(strength).catch((err) => console.error("Redact-It: failed to save strength", err));
+      saveStrength(strength).catch((err) => console.error("Shotglow: failed to save strength", err));
     });
   }
 
@@ -735,29 +753,29 @@ document.addEventListener("DOMContentLoaded", async () => {
       const dataUrl: string | undefined = result[key];
 
       if (!dataUrl) {
-        console.error("Redact-It: no image data found for key", key);
+        console.error("Shotglow: no image data found for key", key);
       } else {
-        const img = await loadImageOntoCanvas(baseCanvas, dataUrl);
+        await loadImageOntoCanvas(baseCanvas, dataUrl);
 
         // Match overlay canvas dimensions to base
         overlayCanvas.width = baseCanvas.width;
         overlayCanvas.height = baseCanvas.height;
 
-        // Resize editor window to fit the image
-        resizeWindowToImage(img);
+        // Resize editor window to fit the beautified output
+        resizeWindowToContents();
 
         // Render the beautify preview now that the image is loaded
         applyPreviewNow();
 
         // Clean up session storage after successful load
         await chrome.storage.session.remove(key);
-        console.log("Redact-It: session key removed after load.");
+        console.log("Shotglow: session key removed after load.");
       }
     } catch (err) {
-      console.error("Redact-It: failed to load image from session storage", err);
+      console.error("Shotglow: failed to load image from session storage", err);
     }
   } else {
-    console.warn("Redact-It: no ?key= param found in editor URL.");
+    console.warn("Shotglow: no ?key= param found in editor URL.");
   }
 
   // ── Wire up mouse events ────────────────────────────────────────────────────
@@ -776,14 +794,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ── Wire up toolbar buttons ─────────────────────────────────────────────────
 
   document.getElementById("btn-copy")?.addEventListener("click", () => {
-    onCopyRedacted().catch((err) => console.error("Redact-It: copy failed", err));
+    onCopyRedacted().catch((err) => console.error("Shotglow: copy failed", err));
   });
   document.getElementById("btn-download")?.addEventListener("click", () => {
-    onDownload().catch((err) => console.error("Redact-It: download failed", err));
+    onDownload().catch((err) => console.error("Shotglow: download failed", err));
   });
 
   // Initial draw (empty state)
   draw();
 
-  console.log("Redact-It editor ready.", { baseCanvas, overlayCanvas });
+  console.log("Shotglow editor ready.", { baseCanvas, overlayCanvas });
 });

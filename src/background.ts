@@ -1,6 +1,6 @@
 import type { BlobBridgeMessage, BlobBridgeResponse, SessionImageKey } from "./types.js";
 
-console.log("Redact-It service worker started.");
+console.log("Shotglow service worker started.");
 
 // ─── Context menu registration ────────────────────────────────────────────────
 
@@ -8,7 +8,7 @@ function registerContextMenu(): void {
   // Remove first to avoid "already exists" error on re-registration
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
-      id: "redact-it-open",
+      id: "shotglow-open",
       title: "Redact this image",
       contexts: ["image"],
     });
@@ -36,7 +36,7 @@ function showError(message: string): void {
   chrome.notifications.create({
     type: "basic",
     iconUrl: chrome.runtime.getURL("icons/48.png"),
-    title: "Redact-It",
+    title: "Shotglow",
     message,
   });
 }
@@ -135,7 +135,7 @@ function bridgeBlob(srcUrl: string): Promise<BlobBridgeResponse> {
 // ─── Context menu click handler ───────────────────────────────────────────────
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId !== "redact-it-open") return;
+  if (info.menuItemId !== "shotglow-open") return;
 
   const srcUrl = info.srcUrl;
   if (!srcUrl) {
@@ -145,7 +145,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
   const tabId = tab?.id;
 
-  const key: SessionImageKey = `redact-it:${Date.now()}`;
+  const key: SessionImageKey = `shotglow:${Date.now()}`;
 
   const run = async () => {
     let dataUrl: string;
@@ -170,7 +170,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   };
 
   run().catch((err) => {
-    console.error("Redact-It: capture failed", err);
+    console.error("Shotglow: capture failed", err);
     showError(`Failed to capture image: ${err instanceof Error ? err.message : String(err)}`);
   });
 });
