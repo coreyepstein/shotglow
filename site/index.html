@@ -511,6 +511,142 @@
         max-width: 38rem;
       }
 
+      /* ── how it works ───────────────────────────────────────── */
+
+      .how-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 34px;
+        align-items: start;
+      }
+
+      @media (max-width: 800px) {
+        .how-grid {
+          grid-template-columns: 1fr;
+          gap: 26px;
+        }
+      }
+
+      /* Chrome-style right-click menu over a screenshot */
+      .ctx-demo {
+        position: relative;
+        display: flex;
+        align-items: center;
+        border-radius: var(--r);
+        border: 1px solid var(--line);
+        background: linear-gradient(125deg, #fb923c, #ec4899 52%, #7c3aed);
+        padding: 40px 26px 64px;
+        overflow: hidden;
+        min-height: 420px;
+      }
+
+      .ctx-shot {
+        width: 100%;
+        background: #fff;
+        border-radius: 8px;
+        padding: 14px;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
+      }
+
+      .ctx-shot .bar {
+        height: 9px;
+        border-radius: 5px;
+        background: #e2e8f0;
+        margin-bottom: 9px;
+      }
+
+      .ctx-shot .bar.w1 { width: 46%; background: #cbd5e1; }
+      .ctx-shot .bar.w2 { width: 88%; }
+      .ctx-shot .bar.w3 { width: 72%; }
+      .ctx-shot .bar.dark { width: 40%; background: #334155; }
+      .ctx-shot .bar:last-child { margin-bottom: 0; }
+
+      .ctx-menu {
+        position: absolute;
+        left: 34%;
+        bottom: 76px;
+        width: 226px;
+        background: #f7f7f8;
+        border: 1px solid rgba(0, 0, 0, 0.14);
+        border-radius: 9px;
+        padding: 5px;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.4);
+        font-size: 12.5px;
+        color: #1f2328;
+        line-height: 1.35;
+      }
+
+      .ctx-menu .item {
+        padding: 6px 10px;
+        border-radius: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .ctx-menu .item.muted {
+        color: #55595e;
+      }
+
+      .ctx-menu .sep {
+        height: 1px;
+        background: rgba(0, 0, 0, 0.1);
+        margin: 5px 8px;
+      }
+
+      .ctx-menu .item.pick {
+        background: #1a73e8;
+        color: #fff;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .ctx-menu .item.pick img {
+        width: 15px;
+        height: 15px;
+        border-radius: 4px;
+        display: block;
+      }
+
+      /* the pointer sits at the menu's top-left — where the click landed */
+      .ctx-cursor {
+        position: absolute;
+        left: -7px;
+        top: -5px;
+        width: 17px;
+        height: 17px;
+        pointer-events: none;
+        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+      }
+
+      .ctx-caption {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 10px 18px;
+        background: rgba(8, 8, 11, 0.62);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: #fff;
+        font-size: 12.5px;
+        text-align: center;
+      }
+
+      @media (max-width: 460px) {
+        .ctx-demo {
+          min-height: 360px;
+          padding: 30px 18px 60px;
+        }
+        .ctx-menu {
+          left: 22%;
+          width: 198px;
+          font-size: 11.5px;
+        }
+      }
+
       /* ── install ────────────────────────────────────────────── */
 
       ol.steps {
@@ -885,6 +1021,7 @@
         </a>
         <nav class="nav">
           <a href="#demo" class="hide-sm">Demo</a>
+          <a href="#how" class="hide-sm">How it works</a>
           <a href="#install" class="hide-sm">Install</a>
           <a class="btn-sm" href="https://github.com/coreyepstein/shotglow">GitHub</a>
         </nav>
@@ -971,6 +1108,79 @@
           </div>
         </div>
       </div>
+
+      <!-- ── how it works ────────────────────────────────────── -->
+
+      <section id="how" class="reveal">
+        <p class="kicker">How it works</p>
+        <h2>Right-click, redact, paste</h2>
+        <p class="lede">
+          Shotglow lives in Chrome's right-click menu. Any image on any page — a screenshot in a
+          Slack thread, a chart in a dashboard, a photo on a site — is one click from the editor.
+        </p>
+
+        <div class="how-grid">
+          <ol class="steps">
+            <li>
+              <strong>Right-click the image</strong>
+              <p>
+                On any page, right-click any image and choose <b>Shotglow</b> from the menu. The
+                editor opens in its own window with that exact image already loaded — nothing to
+                save, upload or drag anywhere.
+              </p>
+            </li>
+            <li>
+              <strong>Drag boxes over the sensitive bits</strong>
+              <p>
+                Click and drag across anything that shouldn't be shared. Adjust the strength if you
+                want a coarser mosaic, and undo with <kbd>Cmd</kbd> + <kbd>Z</kbd> if you overshoot.
+              </p>
+            </li>
+            <li>
+              <strong>Frame it, if you want</strong>
+              <p>
+                Optional: add a background, padding, rounded corners and a shadow from the panel on
+                the right. The preview always matches the file you'll get.
+              </p>
+            </li>
+            <li>
+              <strong>Copy, then paste it straight back</strong>
+              <p>
+                Hit <b>Copy</b> (or <kbd>Cmd</kbd> + <kbd>C</kbd>) and the finished PNG is on your
+                clipboard. Paste it directly into Slack, a doc, an email or a GitHub issue — no file
+                to find, no download folder to clean up. <b>Download</b> saves it instead.
+              </p>
+            </li>
+          </ol>
+
+          <div class="ctx-demo" aria-hidden="true">
+            <div class="ctx-shot">
+              <div class="bar w1"></div>
+              <div class="bar w2"></div>
+              <div class="bar dark"></div>
+              <div class="bar w3"></div>
+              <div class="bar w2"></div>
+            </div>
+
+            <div class="ctx-menu">
+              <div class="item muted">Open image in new tab</div>
+              <div class="item muted">Save image as…</div>
+              <div class="item muted">Copy image</div>
+              <div class="item muted">Copy image address</div>
+              <div class="sep"></div>
+              <div class="item pick"><img src="icon.svg" alt="" width="15" height="15" />Shotglow</div>
+              <div class="sep"></div>
+              <div class="item muted">Inspect</div>
+
+              <svg class="ctx-cursor" viewBox="0 0 24 24" fill="#fff" stroke="#111" stroke-width="1.2" stroke-linejoin="round">
+                <path d="M5 2.5 19.2 12.4l-6.1.5 3.2 6.6-2.7 1.3-3.2-6.6-4.4 4.2z" />
+              </svg>
+            </div>
+
+            <p class="ctx-caption">Chrome's right-click menu, on any image, on any page</p>
+          </div>
+        </div>
+      </section>
 
       <!-- ── install ─────────────────────────────────────────── -->
 
