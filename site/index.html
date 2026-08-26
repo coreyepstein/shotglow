@@ -23,17 +23,22 @@
 
     <style>
       :root {
-        --bg: #0e0e11;
-        --panel: #17171c;
-        --panel-2: #1e1e25;
-        --line: #2b2b34;
-        --text: #f4f4f6;
-        --muted: #a0a0ad;
+        --bg: #0b0b0e;
+        --panel: #141419;
+        --panel-2: #1c1c23;
+        --line: #26262f;
+        --line-2: #33333f;
+        --text: #f5f5f7;
+        --muted: #9d9daa;
+        --muted-2: #74747f;
         --brand-1: #fb923c;
         --brand-2: #ec4899;
         --brand-3: #7c3aed;
-        --radius: 14px;
-        --maxw: 940px;
+        --grad: linear-gradient(100deg, var(--brand-1), var(--brand-2) 52%, var(--brand-3));
+        --r-sm: 10px;
+        --r: 16px;
+        --r-lg: 22px;
+        --maxw: 1000px;
       }
 
       * {
@@ -44,27 +49,27 @@
 
       html {
         scroll-behavior: smooth;
+        -webkit-text-size-adjust: 100%;
       }
 
       body {
         background: var(--bg);
         color: var(--text);
-        font-family:
-          ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
         line-height: 1.6;
         -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
       }
 
-      body::before {
-        content: "";
+      .glow {
         position: fixed;
         inset: 0;
         pointer-events: none;
         z-index: 0;
         background:
-          radial-gradient(60rem 34rem at 12% -8%, rgba(251, 146, 60, 0.16), transparent 60%),
-          radial-gradient(52rem 30rem at 88% 4%, rgba(124, 58, 237, 0.2), transparent 62%),
-          radial-gradient(40rem 24rem at 50% 32%, rgba(236, 72, 153, 0.1), transparent 65%);
+          radial-gradient(58rem 32rem at 10% -10%, rgba(251, 146, 60, 0.14), transparent 60%),
+          radial-gradient(50rem 30rem at 90% 2%, rgba(124, 58, 237, 0.18), transparent 62%),
+          radial-gradient(38rem 22rem at 50% 26%, rgba(236, 72, 153, 0.09), transparent 66%);
       }
 
       .wrap {
@@ -75,14 +80,40 @@
         padding: 0 24px;
       }
 
-      /* ---------- header ---------- */
+      a {
+        color: inherit;
+      }
 
-      header {
+      :focus-visible {
+        outline: 2px solid var(--brand-2);
+        outline-offset: 3px;
+        border-radius: 4px;
+      }
+
+      /* ── header ─────────────────────────────────────────────── */
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        transition: background 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease;
+        border-bottom: 1px solid transparent;
+      }
+
+      .site-header.stuck {
+        background: rgba(11, 11, 14, 0.72);
+        backdrop-filter: saturate(160%) blur(14px);
+        -webkit-backdrop-filter: saturate(160%) blur(14px);
+        border-bottom-color: var(--line);
+      }
+
+      .site-header .wrap {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding: 26px 0;
+        padding-top: 18px;
+        padding-bottom: 18px;
       }
 
       .brand {
@@ -90,104 +121,139 @@
         align-items: center;
         gap: 11px;
         font-weight: 650;
-        letter-spacing: -0.01em;
-        font-size: 17px;
+        letter-spacing: -0.015em;
+        font-size: 16.5px;
+        text-decoration: none;
       }
 
       .brand img {
-        width: 30px;
-        height: 30px;
+        width: 29px;
+        height: 29px;
         border-radius: 8px;
         display: block;
       }
 
-      .ghlink {
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .nav a {
         color: var(--muted);
         text-decoration: none;
         font-size: 14px;
-        border: 1px solid var(--line);
-        padding: 7px 14px;
+        padding: 7px 12px;
         border-radius: 999px;
-        transition: color 0.15s ease, border-color 0.15s ease;
+        transition: color 0.15s ease, background 0.15s ease;
       }
 
-      .ghlink:hover {
+      .nav a:hover {
         color: var(--text);
-        border-color: #45454f;
+        background: rgba(255, 255, 255, 0.05);
       }
 
-      /* ---------- hero ---------- */
+      .nav .btn-sm {
+        border: 1px solid var(--line-2);
+      }
+
+      @media (max-width: 620px) {
+        .nav a.hide-sm {
+          display: none;
+        }
+      }
+
+      /* ── hero ───────────────────────────────────────────────── */
 
       .hero {
-        padding: 56px 0 8px;
+        padding: 60px 0 0;
         text-align: center;
       }
 
       .eyebrow {
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         font-size: 12.5px;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--muted);
         border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.02);
+        background: rgba(255, 255, 255, 0.025);
         border-radius: 999px;
-        padding: 5px 13px;
-        margin-bottom: 22px;
+        padding: 6px 14px;
+        margin-bottom: 24px;
+      }
+
+      .eyebrow .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--grad);
       }
 
       h1 {
-        font-size: clamp(2.3rem, 6.2vw, 3.6rem);
-        line-height: 1.08;
-        letter-spacing: -0.03em;
+        font-size: clamp(2.4rem, 6.4vw, 3.9rem);
+        line-height: 1.05;
+        letter-spacing: -0.035em;
         font-weight: 700;
-        margin-bottom: 18px;
+        margin-bottom: 20px;
       }
 
-      h1 .grad {
-        background: linear-gradient(100deg, var(--brand-1), var(--brand-2) 52%, var(--brand-3));
+      .grad-text {
+        background: var(--grad);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
       }
 
       .sub {
-        font-size: clamp(1rem, 2.2vw, 1.16rem);
+        font-size: clamp(1.02rem, 2.1vw, 1.18rem);
         color: var(--muted);
-        max-width: 34rem;
-        margin: 0 auto 32px;
+        max-width: 33rem;
+        margin: 0 auto 34px;
       }
-
-      /* ---------- download ---------- */
 
       .cta {
         display: flex;
         flex-direction: column;
         align-items: center;
+        gap: 14px;
+      }
+
+      .cta-row {
+        display: flex;
+        align-items: center;
         gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
       }
 
       .btn {
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        background: linear-gradient(100deg, var(--brand-1), var(--brand-2) 55%, var(--brand-3));
+        background: var(--grad);
         color: #fff;
         text-decoration: none;
         font-weight: 620;
-        font-size: 16px;
-        padding: 15px 30px;
+        font-size: 15.5px;
+        padding: 15px 28px;
         border-radius: 999px;
         border: 0;
         cursor: pointer;
-        box-shadow: 0 10px 30px rgba(236, 72, 153, 0.22);
+        box-shadow: 0 10px 30px rgba(236, 72, 153, 0.2);
         transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
       }
 
       .btn:hover {
         transform: translateY(-1px);
-        filter: brightness(1.06);
-        box-shadow: 0 14px 36px rgba(236, 72, 153, 0.3);
+        filter: brightness(1.07);
+        box-shadow: 0 14px 38px rgba(236, 72, 153, 0.3);
+      }
+
+      .btn:active {
+        transform: translateY(0);
       }
 
       .btn svg {
@@ -196,160 +262,391 @@
         flex-shrink: 0;
       }
 
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid var(--line-2);
+        color: var(--text);
+        box-shadow: none;
+        font-weight: 560;
+      }
+
+      .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.045);
+        filter: none;
+        box-shadow: none;
+      }
+
+      .btn-sm {
+        padding: 7px 14px;
+        font-size: 14px;
+      }
+
       .cta-meta {
         font-size: 13.5px;
-        color: var(--muted);
+        color: var(--muted-2);
       }
 
       .cta-meta a {
-        color: var(--muted);
+        color: var(--muted-2);
       }
 
-      /* ---------- demo ---------- */
+      /* ── demo ───────────────────────────────────────────────── */
 
-      .demo {
-        margin: 52px auto 0;
+      .demo-section {
+        padding: 54px 0 0;
+      }
+
+      .demo-shell {
         border: 1px solid var(--line);
-        border-radius: var(--radius);
+        border-radius: var(--r-lg);
         background: var(--panel);
-        padding: 18px;
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
       }
 
-      .demo svg {
+      .demo-bar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel-2);
+      }
+
+      .demo-bar .title {
+        font-size: 13.5px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin-right: auto;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .live-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #4ade80;
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6);
+        animation: pulse 2.4s ease-out infinite;
+      }
+
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); }
+        70% { box-shadow: 0 0 0 7px rgba(74, 222, 128, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+      }
+
+      .ctrl {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .ctrl input[type="range"] {
+        width: 92px;
+        accent-color: var(--brand-2);
+        cursor: pointer;
+      }
+
+      .chiprow {
+        display: flex;
+        gap: 6px;
+      }
+
+      .chip {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        border: 1px solid var(--line-2);
+        cursor: pointer;
+        padding: 0;
+        transition: transform 0.14s ease, border-color 0.14s ease;
+      }
+
+      .chip:hover {
+        transform: scale(1.1);
+      }
+
+      .chip[aria-pressed="true"] {
+        border-color: #fff;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+      }
+
+      .tbtn {
+        background: var(--panel);
+        border: 1px solid var(--line-2);
+        color: var(--muted);
+        font-size: 12.5px;
+        font-family: inherit;
+        padding: 6px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+      }
+
+      .tbtn:hover:not(:disabled) {
+        color: var(--text);
+        border-color: #4a4a58;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .tbtn:disabled {
+        opacity: 0.38;
+        cursor: default;
+      }
+
+      .demo-stage {
+        position: relative;
+        padding: clamp(16px, 4vw, 40px);
+        display: grid;
+        place-items: center;
+        background-image:
+          linear-gradient(45deg, #101014 25%, transparent 25%),
+          linear-gradient(-45deg, #101014 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #101014 75%),
+          linear-gradient(-45deg, transparent 75%, #101014 75%);
+        background-size: 22px 22px;
+        background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+      }
+
+      /* the "output frame" — mirrors what the extension exports */
+      .frame {
+        position: relative;
+        border-radius: 12px;
+        padding: clamp(14px, 3.2vw, 34px);
+        width: 100%;
+        max-width: 720px;
+        transition: background 0.4s ease;
+        line-height: 0;
+      }
+
+      #demo-canvas {
         display: block;
         width: 100%;
         height: auto;
         border-radius: 8px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.34);
+        cursor: crosshair;
+        touch-action: none;
       }
 
-      .demo-caption {
-        margin-top: 12px;
-        font-size: 13px;
-        color: var(--muted);
-        text-align: center;
+      .hint {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        pointer-events: none;
+        transition: opacity 0.35s ease;
       }
 
-      /* ---------- sections ---------- */
+      .hint span {
+        background: rgba(10, 10, 13, 0.82);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid var(--line-2);
+        color: var(--text);
+        font-size: 13.5px;
+        font-weight: 560;
+        padding: 9px 17px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        animation: bob 2.6s ease-in-out infinite;
+      }
+
+      @keyframes bob {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+      }
+
+      .hint.gone {
+        opacity: 0;
+      }
+
+      .demo-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 12px 18px;
+        border-top: 1px solid var(--line);
+        background: var(--panel-2);
+        font-size: 12.5px;
+        color: var(--muted-2);
+      }
+
+      /* ── sections ───────────────────────────────────────────── */
 
       section {
-        padding: 68px 0 8px;
+        padding: 82px 0 0;
+      }
+
+      .kicker {
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--brand-2);
+        font-weight: 640;
+        margin-bottom: 10px;
       }
 
       h2 {
-        font-size: clamp(1.5rem, 3.4vw, 1.95rem);
-        letter-spacing: -0.02em;
-        margin-bottom: 10px;
+        font-size: clamp(1.6rem, 3.6vw, 2.1rem);
+        letter-spacing: -0.028em;
+        line-height: 1.15;
+        margin-bottom: 12px;
       }
 
       .lede {
         color: var(--muted);
-        margin-bottom: 30px;
-        max-width: 40rem;
+        margin-bottom: 34px;
+        max-width: 38rem;
       }
 
-      /* ---------- install steps ---------- */
+      /* ── install ────────────────────────────────────────────── */
 
       ol.steps {
         list-style: none;
         counter-reset: step;
         display: grid;
-        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+        gap: 14px;
       }
 
       ol.steps li {
         counter-increment: step;
-        position: relative;
         background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: var(--radius);
-        padding: 17px 20px 17px 62px;
+        border-radius: var(--r);
+        padding: 20px;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+      }
+
+      ol.steps li:hover {
+        border-color: var(--line-2);
+        transform: translateY(-2px);
       }
 
       ol.steps li::before {
         content: counter(step);
-        position: absolute;
-        left: 18px;
-        top: 16px;
-        width: 28px;
-        height: 28px;
         display: grid;
         place-items: center;
-        border-radius: 50%;
+        width: 27px;
+        height: 27px;
+        margin-bottom: 13px;
+        border-radius: 8px;
         font-size: 13px;
         font-weight: 700;
         color: #fff;
-        background: linear-gradient(140deg, var(--brand-1), var(--brand-3));
+        background: var(--grad);
       }
 
       ol.steps strong {
         font-weight: 620;
+        display: block;
+        margin-bottom: 5px;
+        letter-spacing: -0.012em;
       }
 
       ol.steps p {
         color: var(--muted);
-        font-size: 14.5px;
-        margin-top: 3px;
+        font-size: 14px;
       }
 
       code,
       kbd {
         font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-        font-size: 0.9em;
+        font-size: 0.88em;
         background: var(--panel-2);
         border: 1px solid var(--line);
         border-radius: 6px;
         padding: 2px 6px;
+        white-space: nowrap;
       }
 
       .note {
-        margin-top: 20px;
+        margin-top: 22px;
         font-size: 14px;
         color: var(--muted);
-        border-left: 2px solid var(--brand-2);
-        padding-left: 14px;
+        border-left: 2px solid var(--line-2);
+        padding-left: 16px;
       }
 
-      /* ---------- features ---------- */
+      /* ── features ───────────────────────────────────────────── */
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
         gap: 14px;
       }
 
       .card {
         background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: var(--radius);
-        padding: 20px;
+        border-radius: var(--r);
+        padding: 22px;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+      }
+
+      .card:hover {
+        border-color: var(--line-2);
+        transform: translateY(-2px);
+      }
+
+      .card .ico {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: rgba(236, 72, 153, 0.11);
+        border: 1px solid rgba(236, 72, 153, 0.2);
+        margin-bottom: 14px;
+      }
+
+      .card .ico svg {
+        width: 17px;
+        height: 17px;
+        stroke: var(--brand-2);
+        fill: none;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
 
       .card h3 {
         font-size: 15.5px;
         margin-bottom: 6px;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.014em;
       }
 
       .card p {
         color: var(--muted);
-        font-size: 14.5px;
+        font-size: 14.2px;
       }
 
-      /* ---------- shortcuts ---------- */
+      /* ── shortcuts ──────────────────────────────────────────── */
 
       table {
         width: 100%;
         border-collapse: collapse;
         background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: var(--radius);
+        border-radius: var(--r);
         overflow: hidden;
-        font-size: 14.5px;
+        font-size: 14.3px;
       }
 
       td {
-        padding: 12px 18px;
+        padding: 12px 20px;
         border-bottom: 1px solid var(--line);
         color: var(--muted);
       }
@@ -359,18 +656,41 @@
       }
 
       td:first-child {
-        width: 40%;
+        width: 42%;
         color: var(--text);
         white-space: nowrap;
       }
 
-      /* ---------- footer ---------- */
+      /* ── final cta ──────────────────────────────────────────── */
+
+      .final {
+        margin-top: 88px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        background:
+          radial-gradient(34rem 18rem at 50% 0%, rgba(236, 72, 153, 0.12), transparent 70%),
+          var(--panel);
+        padding: clamp(34px, 6vw, 56px) 24px;
+        text-align: center;
+      }
+
+      .final h2 {
+        margin-bottom: 8px;
+      }
+
+      .final p {
+        color: var(--muted);
+        margin: 0 auto 26px;
+        max-width: 28rem;
+      }
+
+      /* ── footer ─────────────────────────────────────────────── */
 
       footer {
-        margin-top: 76px;
-        padding: 30px 0 46px;
+        margin-top: 60px;
+        padding: 28px 0 48px;
         border-top: 1px solid var(--line);
-        color: var(--muted);
+        color: var(--muted-2);
         font-size: 13.5px;
         display: flex;
         flex-wrap: wrap;
@@ -379,143 +699,185 @@
       }
 
       footer a {
-        color: var(--muted);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        color: var(--text);
+      }
+
+      /* ── reveal ─────────────────────────────────────────────── */
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(14px);
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+
+      .reveal.in {
+        opacity: 1;
+        transform: none;
       }
 
       @media (max-width: 560px) {
+        .eyebrow {
+          font-size: 11px;
+          letter-spacing: 0.03em;
+          padding: 6px 12px;
+        }
+        .cta-row {
+          width: 100%;
+        }
         .btn {
           width: 100%;
           justify-content: center;
+        }
+        .btn-sm {
+          width: auto;
         }
         td:first-child {
           width: auto;
           white-space: normal;
         }
+        .demo-bar {
+          gap: 10px;
+        }
+        .hint span {
+          font-size: 12.5px;
+          padding: 8px 14px;
+        }
+        .demo-foot {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
-        * {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
           transition: none !important;
         }
         html {
           scroll-behavior: auto;
         }
+        .reveal {
+          opacity: 1;
+          transform: none;
+        }
       }
     </style>
+    <noscript>
+      <style>
+        .reveal { opacity: 1; transform: none; }
+        #demo { display: none; }
+      </style>
+    </noscript>
   </head>
 
   <body>
-    <div class="wrap">
-      <header>
-        <div class="brand">
-          <img src="icon.svg" alt="" width="30" height="30" />
-          <span>Shotglow</span>
-        </div>
-        <a class="ghlink" href="https://github.com/coreyepstein/shotglow">GitHub</a>
-      </header>
+    <div class="glow"></div>
 
+    <header class="site-header" id="site-header">
+      <div class="wrap">
+        <a class="brand" href="#top">
+          <img src="icon.svg" alt="" width="29" height="29" />
+          <span>Shotglow</span>
+        </a>
+        <nav class="nav">
+          <a href="#demo" class="hide-sm">Demo</a>
+          <a href="#install" class="hide-sm">Install</a>
+          <a class="btn-sm" href="https://github.com/coreyepstein/shotglow">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap" id="top">
       <div class="hero">
-        <span class="eyebrow">Chrome extension · Free &amp; open source</span>
-        <h1>Redact screenshots<br /><span class="grad">before you share them</span></h1>
+        <span class="eyebrow"><span class="dot"></span>Chrome extension · Free &amp; open source</span>
+        <h1>Redact screenshots<br /><span class="grad-text">before you share them</span></h1>
         <p class="sub">
           Right-click any image, drag boxes over the parts nobody else should see, and copy a clean
           PNG to your clipboard. Nothing leaves your browser.
         </p>
 
         <div class="cta">
-          <a
-            class="btn"
-            id="download"
-            href="https://github.com/coreyepstein/shotglow/releases/latest/download/shotglow.zip"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 3v12" />
-              <path d="m7 11 5 5 5-5" />
-              <path d="M4 20h16" />
-            </svg>
-            <span>Download for Chrome</span>
-          </a>
+          <div class="cta-row">
+            <a
+              class="btn"
+              id="download"
+              href="https://github.com/coreyepstein/shotglow/releases/latest/download/shotglow.zip"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M4 20h16" />
+              </svg>
+              <span>Download for Chrome</span>
+            </a>
+            <a class="btn btn-ghost" href="#demo">Try it first</a>
+          </div>
           <p class="cta-meta" id="release-meta">
-            Latest release ·
-            <a href="https://github.com/coreyepstein/shotglow/releases">all versions</a>
-          </p>
-        </div>
-
-        <div class="demo">
-          <svg viewBox="0 0 800 340" role="img" aria-label="Before and after: an API key and email redacted with a pixelated block">
-            <defs>
-              <linearGradient id="wall" x1="0" y1="0" x2="800" y2="340" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#fb923c" />
-                <stop offset="0.5" stop-color="#ec4899" />
-                <stop offset="1" stop-color="#7c3aed" />
-              </linearGradient>
-              <filter id="cardshadow" x="-30%" y="-30%" width="160%" height="160%">
-                <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.35" />
-              </filter>
-            </defs>
-
-            <rect width="800" height="340" rx="8" fill="url(#wall)" />
-
-            <g filter="url(#cardshadow)">
-              <rect x="86" y="52" width="628" height="236" rx="16" fill="#ffffff" />
-            </g>
-
-            <rect x="86" y="52" width="628" height="42" rx="16" fill="#f1f5f9" />
-            <rect x="86" y="80" width="628" height="14" fill="#f1f5f9" />
-            <circle cx="112" cy="73" r="6" fill="#e2e8f0" />
-            <circle cx="132" cy="73" r="6" fill="#e2e8f0" />
-            <circle cx="152" cy="73" r="6" fill="#e2e8f0" />
-
-            <rect x="118" y="122" width="150" height="13" rx="6.5" fill="#cbd5e1" />
-            <rect x="118" y="152" width="88" height="11" rx="5.5" fill="#e2e8f0" />
-
-            <!-- redacted: api key -->
-            <g>
-              <rect x="216" y="148" width="26" height="19" fill="#64748b" />
-              <rect x="242" y="148" width="26" height="19" fill="#94a3b8" />
-              <rect x="268" y="148" width="26" height="19" fill="#475569" />
-              <rect x="294" y="148" width="26" height="19" fill="#7c8798" />
-              <rect x="320" y="148" width="26" height="19" fill="#586479" />
-              <rect x="346" y="148" width="26" height="19" fill="#8b96a8" />
-              <rect x="372" y="148" width="26" height="19" fill="#5a6678" />
-              <rect x="216" y="148" width="182" height="19" fill="none" stroke="#ec4899" stroke-width="2" />
-            </g>
-
-            <rect x="118" y="192" width="72" height="11" rx="5.5" fill="#e2e8f0" />
-
-            <!-- redacted: email -->
-            <g>
-              <rect x="200" y="188" width="24" height="19" fill="#7c8798" />
-              <rect x="224" y="188" width="24" height="19" fill="#4b5563" />
-              <rect x="248" y="188" width="24" height="19" fill="#94a3b8" />
-              <rect x="272" y="188" width="24" height="19" fill="#616d7e" />
-              <rect x="200" y="188" width="96" height="19" fill="none" stroke="#ec4899" stroke-width="2" />
-            </g>
-
-            <rect x="118" y="232" width="330" height="11" rx="5.5" fill="#eef2f6" />
-            <rect x="118" y="254" width="240" height="11" rx="5.5" fill="#eef2f6" />
-          </svg>
-          <p class="demo-caption">
-            Pixelate the secrets, keep the frame — background, padding, rounded corners and shadow
-            are built in.
+            Latest release · <a href="https://github.com/coreyepstein/shotglow/releases">all versions</a>
           </p>
         </div>
       </div>
 
-      <section id="install">
+      <!-- ── interactive demo ────────────────────────────────── -->
+
+      <div class="demo-section" id="demo">
+        <div class="demo-shell reveal">
+          <div class="demo-bar">
+            <span class="title"><span class="live-dot"></span>Live demo — no install needed</span>
+
+            <span class="ctrl">
+              <label for="strength">Strength</label>
+              <input type="range" id="strength" min="1" max="4" step="1" value="2" />
+            </span>
+
+            <span class="ctrl chiprow" id="bgchips" role="group" aria-label="Background"></span>
+
+            <button class="tbtn" id="undo" disabled>Undo</button>
+            <button class="tbtn" id="clear" disabled>Clear</button>
+          </div>
+
+          <div class="demo-stage">
+            <div class="frame" id="frame">
+              <canvas id="demo-canvas" width="1280" height="800" aria-label="Sample screenshot — drag to redact regions"></canvas>
+            </div>
+            <div class="hint" id="hint">
+              <span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 3h7v7H3z" /><path d="m14 14 7 7" /><path d="M14 21v-7h7" />
+                </svg>
+                Drag a box over anything sensitive
+              </span>
+            </div>
+          </div>
+
+          <div class="demo-foot">
+            <span id="demo-status">This is the real pixelation the extension uses.</span>
+            <span>Try the API key, the card number, or the email.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── install ─────────────────────────────────────────── -->
+
+      <section id="install" class="reveal">
+        <p class="kicker">Getting started</p>
         <h2>Install it in about 30 seconds</h2>
         <p class="lede">
-          Shotglow isn't on the Chrome Web Store yet, so you load it yourself. It's the same
-          "Load unpacked" flow developers use every day, and it takes four clicks.
+          Shotglow isn't on the Chrome Web Store, so you load it yourself. It's the same
+          "Load unpacked" flow developers use every day — four clicks, no account, no sign-up.
         </p>
 
         <ol class="steps">
           <li>
             <strong>Download and unzip</strong>
             <p>
-              Use the button above. You'll get <code>shotglow.zip</code> — unzip it and keep the
-              <code>shotglow</code> folder somewhere permanent, like your Documents folder. Chrome
-              loads the extension from that folder every time it starts, so don't delete it.
+              Use the button above, then unzip <code>shotglow.zip</code>. Keep the folder somewhere
+              permanent — Chrome loads the extension from it every time it starts.
             </p>
           </li>
           <li>
@@ -527,64 +889,73 @@
             <p>It's the toggle in the top-right corner of that page.</p>
           </li>
           <li>
-            <strong>Click "Load unpacked" and pick the folder</strong>
+            <strong>Click "Load unpacked"</strong>
             <p>
               Select the unzipped <code>shotglow</code> folder — the one containing
-              <code>manifest.json</code>. Shotglow now appears in your toolbar and in the right-click
-              menu on any image.
+              <code>manifest.json</code>. That's it.
             </p>
           </li>
         </ol>
 
         <p class="note">
-          Updating later: download the newest zip, unzip it over the old folder, then click the
-          refresh icon next to Shotglow on <code>chrome://extensions</code>.
+          <strong>Updating later:</strong> download the newest zip, unzip it over the old folder, then
+          click the refresh icon next to Shotglow on <code>chrome://extensions</code>.
         </p>
       </section>
 
-      <section id="features">
-        <h2>What it does</h2>
+      <!-- ── features ────────────────────────────────────────── -->
+
+      <section id="features" class="reveal">
+        <p class="kicker">What it does</p>
+        <h2>Redact it, then make it look good</h2>
         <p class="lede">
-          Redaction is the point, but a screenshot you're about to post deserves to look good too.
+          Hiding the secrets is the point — but a screenshot you're about to post deserves to look
+          deliberate, not dashed off.
         </p>
 
         <div class="grid">
           <div class="card">
+            <div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg></div>
             <h3>Mosaic redaction</h3>
             <p>
-              Drag boxes over anything sensitive. Four strength levels, from lightly scrambled to
-              unrecoverable. The pixels are actually destroyed, not covered.
+              Four strength levels, from lightly scrambled to unrecoverable. The pixels are actually
+              destroyed — not covered by a box someone can move.
             </p>
           </div>
           <div class="card">
+            <div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M9 20v-6h6v6" /></svg></div>
             <h3>Frame and shadow</h3>
             <p>
-              Margin, image scale, corner roundness and a drop shadow — the same treatment that makes
-              a screenshot look deliberate instead of dashed off.
+              Margin, image scale, corner roundness and a drop shadow — the treatment that makes a
+              screenshot look composed instead of cropped.
             </p>
           </div>
           <div class="card">
+            <div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 0 0 18" /></svg></div>
             <h3>Backgrounds</h3>
             <p>
               Solid colors, eight gradient presets or a custom two-stop gradient, plus bundled mesh
-              wallpapers. Add a dot, grid, diagonal or crosshatch overlay on top.
+              wallpapers — with an optional dot, grid or crosshatch overlay.
             </p>
           </div>
           <div class="card">
+            <div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M3 10h18" /></svg></div>
             <h3>Aspect ratios</h3>
             <p>
-              Export at Auto, 1:1, 4:3 or 16:9. The frame expands to fit the ratio — your image is
-              never cropped.
+              Export at Auto, 1:1, 4:3 or 16:9. The frame expands to fit the ratio, so your image is
+              never cropped to make it fit.
             </p>
           </div>
           <div class="card">
+            <div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></svg></div>
             <h3>Copy or download</h3>
             <p>
               One click puts the finished PNG on your clipboard, ready to paste into Slack, a doc or
-              an issue. Or save it to disk.
+              an issue. Or save it straight to disk.
             </p>
           </div>
           <div class="card">
+            <div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg></div>
             <h3>Stays on your machine</h3>
             <p>
               Everything runs locally in the browser. No account, no upload, no server — there's
@@ -594,9 +965,14 @@
         </div>
       </section>
 
-      <section id="shortcuts">
+      <!-- ── shortcuts ───────────────────────────────────────── -->
+
+      <section id="shortcuts" class="reveal">
+        <p class="kicker">Reference</p>
         <h2>Keyboard shortcuts</h2>
-        <p class="lede">macOS shown; use <kbd>Ctrl</kbd> in place of <kbd>Cmd</kbd> on Windows and Linux.</p>
+        <p class="lede">
+          macOS shown; use <kbd>Ctrl</kbd> in place of <kbd>Cmd</kbd> on Windows and Linux.
+        </p>
         <table>
           <tbody>
             <tr><td><kbd>Cmd</kbd> + <kbd>Z</kbd></td><td>Undo the last box</td></tr>
@@ -609,6 +985,22 @@
         </table>
       </section>
 
+      <!-- ── final cta ───────────────────────────────────────── -->
+
+      <div class="final reveal">
+        <h2>Stop cropping around the secrets</h2>
+        <p>Free, open source, and it never sends your screenshots anywhere.</p>
+        <a
+          class="btn"
+          href="https://github.com/coreyepstein/shotglow/releases/latest/download/shotglow.zip"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M4 20h16" />
+          </svg>
+          <span>Download for Chrome</span>
+        </a>
+      </div>
+
       <footer>
         <span>MIT licensed · Built by Corey Epstein</span>
         <span>
@@ -617,13 +1009,13 @@
           <a href="https://github.com/coreyepstein/shotglow/releases">Releases</a>
         </span>
       </footer>
-    </div>
+    </main>
 
     <script>
-      // Label the download button with the actual latest version, when there is one.
+      // ── release label ──────────────────────────────────────────────────────
       (async () => {
         const meta = document.getElementById("release-meta");
-        const allVersions =
+        const all =
           ' · <a href="https://github.com/coreyepstein/shotglow/releases">all versions</a>';
         try {
           const res = await fetch(
@@ -631,21 +1023,327 @@
             { headers: { Accept: "application/vnd.github+json" } }
           );
           if (!res.ok) throw new Error(String(res.status));
-          const release = await res.json();
-          const asset = (release.assets || []).find((a) => a.name === "shotglow.zip");
+          const r = await res.json();
+          const asset = (r.assets || []).find((a) => a.name === "shotglow.zip");
           const size = asset ? ` · ${(asset.size / 1024).toFixed(0)} KB` : "";
-          const date = release.published_at
-            ? new Date(release.published_at).toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
+          const date = r.published_at
+            ? new Date(r.published_at).toLocaleDateString(undefined, {
+                year: "numeric", month: "short", day: "numeric",
               })
             : "";
-          meta.innerHTML =
-            `${release.tag_name}${size}${date ? ` · ${date}` : ""}${allVersions}`;
+          meta.innerHTML = `${r.tag_name}${size}${date ? ` · ${date}` : ""}${all}`;
         } catch {
-          meta.innerHTML = `Latest release${allVersions}`;
+          meta.innerHTML = `Latest release${all}`;
         }
+      })();
+
+      // ── sticky header ──────────────────────────────────────────────────────
+      const header = document.getElementById("site-header");
+      const onScroll = () => header.classList.toggle("stuck", window.scrollY > 8);
+      onScroll();
+      addEventListener("scroll", onScroll, { passive: true });
+
+      // ── scroll reveal ──────────────────────────────────────────────────────
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver(
+          (entries) => {
+            for (const e of entries) {
+              if (e.isIntersecting) {
+                e.target.classList.add("in");
+                io.unobserve(e.target);
+              }
+            }
+          },
+          { rootMargin: "0px 0px -8% 0px", threshold: 0.05 }
+        );
+        document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+      } else {
+        document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in"));
+      }
+
+      // Safety net: content must never stay invisible because an animation
+      // hook failed to fire. Reveal everything unconditionally after a beat.
+      setTimeout(() => {
+        document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in"));
+      }, 1600);
+
+      // ── interactive redaction demo ─────────────────────────────────────────
+      (() => {
+        const canvas = document.getElementById("demo-canvas");
+        const ctx = canvas.getContext("2d");
+        const hint = document.getElementById("hint");
+        const frame = document.getElementById("frame");
+        const undoBtn = document.getElementById("undo");
+        const clearBtn = document.getElementById("clear");
+        const strengthEl = document.getElementById("strength");
+        const status = document.getElementById("demo-status");
+        const chips = document.getElementById("bgchips");
+        const W = canvas.width;
+        const H = canvas.height;
+
+        // Backgrounds mirroring the extension's gradient presets.
+        const BACKGROUNDS = [
+          { id: "sunset", css: "linear-gradient(120deg, #fb923c, #ec4899 52%, #7c3aed)" },
+          { id: "ocean", css: "linear-gradient(120deg, #0ea5e9, #6366f1 55%, #8b5cf6)" },
+          { id: "mint", css: "linear-gradient(120deg, #34d399, #14b8a6 55%, #0ea5e9)" },
+          { id: "slate", css: "#1f2430" },
+        ];
+
+        let bgIndex = 0;
+        const paintBg = () => { frame.style.background = BACKGROUNDS[bgIndex].css; };
+
+        BACKGROUNDS.forEach((bg, i) => {
+          const b = document.createElement("button");
+          b.className = "chip";
+          b.type = "button";
+          b.style.background = bg.css;
+          b.title = bg.id;
+          b.setAttribute("aria-label", `${bg.id} background`);
+          b.setAttribute("aria-pressed", String(i === 0));
+          b.addEventListener("click", () => {
+            bgIndex = i;
+            paintBg();
+            [...chips.children].forEach((c, j) =>
+              c.setAttribute("aria-pressed", String(i === j))
+            );
+          });
+          chips.appendChild(b);
+        });
+        paintBg();
+
+        // ── draw the sample screenshot (synthetic — no real data) ────────────
+        const source = document.createElement("canvas");
+        source.width = W;
+        source.height = H;
+        const sctx = source.getContext("2d");
+
+        const font = (size, weight = 400) =>
+          `${weight} ${size}px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+        const mono = (size, weight = 400) =>
+          `${weight} ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+
+        function roundRect(c, x, y, w, h, r) {
+          const rr = Math.min(r, w / 2, h / 2);
+          c.beginPath();
+          c.moveTo(x + rr, y);
+          c.arcTo(x + w, y, x + w, y + h, rr);
+          c.arcTo(x + w, y + h, x, y + h, rr);
+          c.arcTo(x, y + h, x, y, rr);
+          c.arcTo(x, y, x + w, y, rr);
+          c.closePath();
+        }
+
+        function drawSample() {
+          const c = sctx;
+          c.fillStyle = "#ffffff";
+          c.fillRect(0, 0, W, H);
+
+          // window chrome
+          c.fillStyle = "#f1f5f9";
+          c.fillRect(0, 0, W, 56);
+          c.fillStyle = "#dbe2ea";
+          [40, 68, 96].forEach((x) => {
+            c.beginPath();
+            c.arc(x, 28, 7, 0, Math.PI * 2);
+            c.fill();
+          });
+          c.fillStyle = "#e2e8f0";
+          roundRect(c, 150, 15, 420, 26, 13);
+          c.fill();
+          c.fillStyle = "#7c8798";
+          c.font = mono(14);
+          c.fillText("app.example.com/settings/billing", 168, 33);
+          c.fillStyle = "#e2e8f0";
+          c.fillRect(0, 56, W, 2);
+
+          // sidebar
+          c.fillStyle = "#f8fafc";
+          c.fillRect(0, 58, 250, H - 58);
+          c.fillStyle = "#e8edf3";
+          c.fillRect(248, 58, 2, H - 58);
+
+          // account avatar + name (colorful — pixelates into visible blocks)
+          const av = c.createLinearGradient(28, 86, 76, 134);
+          av.addColorStop(0, "#fb923c");
+          av.addColorStop(0.5, "#ec4899");
+          av.addColorStop(1, "#7c3aed");
+          c.fillStyle = av;
+          c.beginPath();
+          c.arc(52, 110, 24, 0, Math.PI * 2);
+          c.fill();
+          c.fillStyle = "#ffffff";
+          c.font = font(19, 700);
+          c.fillText("CE", 38, 117);
+          c.fillStyle = "#0f172a";
+          c.font = font(15, 600);
+          c.fillText("Corey Epstein", 88, 105);
+          c.fillStyle = "#94a3b8";
+          c.font = font(13);
+          c.fillText("Owner", 88, 125);
+
+          const navItems = ["Overview", "Team", "Billing", "API keys", "Security"];
+          navItems.forEach((label, i) => {
+            const y = 190 + i * 46;
+            if (label === "Billing") {
+              c.fillStyle = "#ede9fe";
+              roundRect(c, 20, y - 19, 210, 36, 9);
+              c.fill();
+              c.fillStyle = "#6d28d9";
+            } else {
+              c.fillStyle = "#64748b";
+            }
+            c.font = font(15, label === "Billing" ? 600 : 400);
+            c.fillText(label, 38, y + 5);
+          });
+
+          // page heading
+          c.fillStyle = "#0f172a";
+          c.font = font(30, 700);
+          c.fillText("Billing", 300, 120);
+          c.fillStyle = "#64748b";
+          c.font = font(15);
+          c.fillText("Manage your plan, payment method and API access.", 300, 150);
+
+          // rows — value sits in a tinted field so the mosaic reads as blocks
+          const rows = [
+            { label: "ACCOUNT EMAIL", value: "corey@example.com", mono: false, badge: null },
+            { label: "LIVE API KEY", value: "sk_live_9fK2mQ8xR4tYbN7v", mono: true, badge: ["LIVE", "#dc2626"] },
+            { label: "CARD ON FILE", value: "4929 8842 1173 5560", mono: true, badge: ["VISA", "#1d4ed8"] },
+            { label: "BILLING ADDRESS", value: "1847 Rowan Street, Portland OR", mono: false, badge: null },
+            { label: "NEXT INVOICE", value: "$248.00 on Sep 1, 2026", mono: false, badge: null },
+          ];
+
+          let y = 196;
+          rows.forEach((row) => {
+            c.fillStyle = "#94a3b8";
+            c.font = font(12, 600);
+            c.fillText(row.label, 302, y + 12);
+
+            // field
+            c.fillStyle = "#f1f5f9";
+            roundRect(c, 300, y + 24, W - 350, 52, 10);
+            c.fill();
+            c.fillStyle = "#dde5ee";
+            roundRect(c, 300, y + 24, W - 350, 52, 10);
+            c.lineWidth = 2;
+            c.strokeStyle = "#dde5ee";
+            c.stroke();
+
+            c.fillStyle = "#0f172a";
+            c.font = row.mono ? mono(21, 600) : font(20, 560);
+            c.fillText(row.value, 320, y + 58);
+
+            if (row.badge) {
+              const [text, color] = row.badge;
+              c.font = font(12, 700);
+              const bw = c.measureText(text).width + 22;
+              c.fillStyle = color;
+              roundRect(c, W - 70 - bw, y + 38, bw, 24, 12);
+              c.fill();
+              c.fillStyle = "#ffffff";
+              c.fillText(text, W - 59 - bw, y + 55);
+            }
+
+            y += 96;
+          });
+        }
+
+        // ── redaction state ──────────────────────────────────────────────────
+        const rects = [];
+        let drag = null;
+
+        const blockSize = () => ({ 1: 8, 2: 16, 3: 32, 4: 64 })[+strengthEl.value] ?? 32;
+
+        function pixelate(c, r, block) {
+          const w = Math.round(r.w);
+          const h = Math.round(r.h);
+          if (w < 1 || h < 1) return;
+          const sw = Math.max(1, Math.ceil(w / block));
+          const sh = Math.max(1, Math.ceil(h / block));
+          const small = document.createElement("canvas");
+          small.width = sw;
+          small.height = sh;
+          const sc = small.getContext("2d");
+          sc.imageSmoothingEnabled = false;
+          sc.drawImage(c.canvas, Math.round(r.x), Math.round(r.y), w, h, 0, 0, sw, sh);
+          c.imageSmoothingEnabled = false;
+          c.drawImage(small, 0, 0, sw, sh, Math.round(r.x), Math.round(r.y), w, h);
+          c.imageSmoothingEnabled = true;
+        }
+
+        function render() {
+          ctx.drawImage(source, 0, 0);
+          const block = blockSize();
+          for (const r of rects) pixelate(ctx, r, block);
+          if (drag) {
+            ctx.save();
+            ctx.strokeStyle = "#ec4899";
+            ctx.lineWidth = 3;
+            ctx.setLineDash([9, 7]);
+            ctx.strokeRect(drag.x, drag.y, drag.w, drag.h);
+            ctx.fillStyle = "rgba(236, 72, 153, 0.14)";
+            ctx.fillRect(drag.x, drag.y, drag.w, drag.h);
+            ctx.restore();
+          }
+          const has = rects.length > 0;
+          undoBtn.disabled = !has;
+          clearBtn.disabled = !has;
+          status.textContent = has
+            ? `${rects.length} region${rects.length > 1 ? "s" : ""} redacted — the original pixels are gone.`
+            : "This is the real pixelation the extension uses.";
+        }
+
+        // ── pointer → canvas coordinates ─────────────────────────────────────
+        function toCanvas(ev) {
+          const b = canvas.getBoundingClientRect();
+          return {
+            x: ((ev.clientX - b.left) / b.width) * W,
+            y: ((ev.clientY - b.top) / b.height) * H,
+          };
+        }
+
+        function normalize(a, b) {
+          return {
+            x: Math.min(a.x, b.x),
+            y: Math.min(a.y, b.y),
+            w: Math.abs(a.x - b.x),
+            h: Math.abs(a.y - b.y),
+          };
+        }
+
+        let origin = null;
+
+        canvas.addEventListener("pointerdown", (ev) => {
+          ev.preventDefault();
+          canvas.setPointerCapture(ev.pointerId);
+          origin = toCanvas(ev);
+          drag = { x: origin.x, y: origin.y, w: 0, h: 0 };
+          hint.classList.add("gone");
+          render();
+        });
+
+        canvas.addEventListener("pointermove", (ev) => {
+          if (!origin) return;
+          drag = normalize(origin, toCanvas(ev));
+          render();
+        });
+
+        const finish = () => {
+          if (drag && drag.w > 6 && drag.h > 6) rects.push({ ...drag });
+          drag = null;
+          origin = null;
+          render();
+        };
+
+        canvas.addEventListener("pointerup", finish);
+        canvas.addEventListener("pointercancel", finish);
+
+        undoBtn.addEventListener("click", () => { rects.pop(); render(); });
+        clearBtn.addEventListener("click", () => { rects.length = 0; hint.classList.remove("gone"); render(); });
+        strengthEl.addEventListener("input", render);
+
+        drawSample();
+        render();
       })();
     </script>
   </body>
