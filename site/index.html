@@ -516,49 +516,146 @@
       ol.steps {
         list-style: none;
         counter-reset: step;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
-        gap: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
 
       ol.steps li {
         counter-increment: step;
+        display: grid;
+        grid-template-columns: 30px 1fr;
+        column-gap: 18px;
+        row-gap: 3px;
+        align-items: start;
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: var(--r);
-        padding: 20px;
-        transition: border-color 0.2s ease, transform 0.2s ease;
+        padding: 18px 22px;
+        transition: border-color 0.2s ease, background 0.2s ease;
       }
 
       ol.steps li:hover {
         border-color: var(--line-2);
-        transform: translateY(-2px);
+        background: #16161c;
       }
 
       ol.steps li::before {
         content: counter(step);
+        grid-column: 1;
+        grid-row: 1 / span 2;
         display: grid;
         place-items: center;
-        width: 27px;
-        height: 27px;
-        margin-bottom: 13px;
-        border-radius: 8px;
-        font-size: 13px;
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        font-size: 13.5px;
         font-weight: 700;
         color: #fff;
         background: var(--grad);
       }
 
       ol.steps strong {
+        grid-column: 2;
         font-weight: 620;
-        display: block;
-        margin-bottom: 5px;
-        letter-spacing: -0.012em;
+        font-size: 15.5px;
+        letter-spacing: -0.014em;
+        padding-top: 3px;
       }
 
       ol.steps p {
+        grid-column: 2;
         color: var(--muted);
-        font-size: 14px;
+        font-size: 14.2px;
+      }
+
+      /* ── quickstart (under the hero download button) ─────────── */
+
+      .quickstart {
+        margin-top: 8px;
+        width: 100%;
+        max-width: 560px;
+        text-align: left;
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        background: rgba(255, 255, 255, 0.018);
+        padding: 18px 20px;
+      }
+
+      .qs-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+
+      .qs-head strong {
+        font-size: 13.5px;
+        font-weight: 640;
+        letter-spacing: -0.01em;
+      }
+
+      .qs-head span {
+        font-size: 12.5px;
+        color: var(--muted-2);
+      }
+
+      ol.qs-steps {
+        list-style: none;
+        counter-reset: qs;
+        display: flex;
+        flex-direction: column;
+      }
+
+      ol.qs-steps li {
+        counter-increment: qs;
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        column-gap: 13px;
+        align-items: center;
+        font-size: 13.8px;
+        color: var(--muted);
+        padding: 7px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      ol.qs-steps li:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      ol.qs-steps li:last-child {
+        padding-bottom: 0;
+      }
+
+      ol.qs-steps li::before {
+        content: counter(qs);
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 7px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+        background: var(--panel-2);
+        border: 1px solid var(--line-2);
+      }
+
+      ol.qs-steps li > span {
+        min-width: 0;
+      }
+
+      ol.qs-steps b {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      ol.qs-steps code {
+        white-space: normal;
+        word-break: break-word;
       }
 
       code,
@@ -820,6 +917,19 @@
           <p class="cta-meta" id="release-meta">
             Latest release · <a href="https://github.com/coreyepstein/shotglow/releases">all versions</a>
           </p>
+
+          <div class="quickstart">
+            <div class="qs-head">
+              <strong>Then install it — about 30 seconds</strong>
+              <span>Not on the Chrome Web Store, so you load it yourself</span>
+            </div>
+            <ol class="qs-steps">
+              <li><span>Unzip <code>shotglow.zip</code> and keep the folder somewhere permanent</span></li>
+              <li><span>Open <code>chrome://extensions</code> in Chrome</span></li>
+              <li><span>Turn on <b>Developer mode</b> — the toggle in the top-right</span></li>
+              <li><span>Click <b>Load unpacked</b> and select the <code>shotglow</code> folder</span></li>
+            </ol>
+          </div>
         </div>
       </div>
 
@@ -866,10 +976,10 @@
 
       <section id="install" class="reveal">
         <p class="kicker">Getting started</p>
-        <h2>Install it in about 30 seconds</h2>
+        <h2>Installing, step by step</h2>
         <p class="lede">
-          Shotglow isn't on the Chrome Web Store, so you load it yourself. It's the same
-          "Load unpacked" flow developers use every day — four clicks, no account, no sign-up.
+          The same four steps as above, with the details. It's the "Load unpacked" flow developers
+          use every day — no account, no sign-up, nothing to configure.
         </p>
 
         <ol class="steps">
