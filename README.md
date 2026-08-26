@@ -2,6 +2,20 @@
 
 A Chrome MV3 extension for redacting sensitive regions from images before sharing.
 
+**Landing page + download:** https://coreyepstein.github.io/shotglow/
+
+## Install (Users)
+
+Shotglow is not on the Chrome Web Store; it installs as an unpacked extension.
+
+1. Download `shotglow.zip` from the [latest release](https://github.com/coreyepstein/shotglow/releases/latest) and unzip it.
+2. Open `chrome://extensions` in Chrome.
+3. Enable **Developer mode** (toggle in the top-right corner).
+4. Click **Load unpacked** and select the unzipped `shotglow` folder (the one containing `manifest.json`).
+
+Keep that folder around — Chrome loads the extension from it on every start. To update, unzip a newer
+release over the same folder and click the refresh icon next to Shotglow on `chrome://extensions`.
+
 ## Load Unpacked (Development)
 
 1. Run `bun run build` to produce the `dist/` folder.
@@ -66,9 +80,30 @@ Strength preference is persisted to `chrome.storage.local` and restored on next 
 bun install          # install dependencies
 bun run build        # build to dist/
 bun run typecheck    # TypeScript check (no emit)
-bun run lint         # ESLint
-bun run test         # Vitest unit tests (src/redact.test.ts, src/editor.test.ts, src/background.test.ts)
+bun run lint         # alias for typecheck
+bun run test         # unit tests (bun test)
 ```
+
+## Releasing
+
+Releases are cut by pushing a `v*` tag. The `Release` workflow verifies that the tag matches the
+version in both `manifest.json` and `package.json`, runs typecheck + tests, builds, and publishes
+`shotglow.zip` (plus a version-stamped copy) as release assets.
+
+```bash
+# bump the version in manifest.json and package.json first, then:
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The landing page's download button points at
+`releases/latest/download/shotglow.zip`, so it always resolves to the newest release without a
+site rebuild.
+
+## Landing Page
+
+`site/index.html` is a single self-contained page deployed to GitHub Pages by the `Deploy landing
+page` workflow on every push to `main` that touches `site/`, `icons/`, or `assets/icon.svg`.
 
 ## Permissions Justification
 

@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Resolve version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify manifest and package versions match the tag
+        run: |
+          EXPECTED="${{ steps.version.outputs.version }}"
+          MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [ "$MANIFEST_VERSION" != "$EXPECTED" ]; then
+            echo "manifest.json version ($MANIFEST_VERSION) does not match tag ($EXPECTED)" >&2
+            exit 1
+          fi
+          if [ "$PACKAGE_VERSION" != "$EXPECTED" ]; then
+            echo "package.json version ($PACKAGE_VERSION) does not match tag ($EXPECTED)" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build
+
+      - name: Package unpacked extension
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p package/shotglow
+          cp -R dist/. package/shotglow/
+          cd package
+          zip -r "../shotglow.zip" shotglow
+          cd ..
+          cp shotglow.zip "shotglow-${VERSION}.zip"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Shotglow ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            shotglow.zip
+            shotglow-${{ steps.version.outputs.version }}.zip
+          body: |
+            ## Install
+
+            1. Download `shotglow.zip` below and unzip it.
+            2. Open `chrome://extensions` in Chrome.
+            3. Turn on **Developer mode** (top-right toggle).
+            4. Click **Load unpacked** and select the unzipped `shotglow` folder.
+
+            Full instructions: https://coreyepstein.github.io/shotglow/
