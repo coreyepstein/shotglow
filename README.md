@@ -92,8 +92,8 @@ version in both `manifest.json` and `package.json`, runs typecheck + tests, buil
 
 ```bash
 # bump the version in manifest.json and package.json first, then:
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 The landing page's download button points at
