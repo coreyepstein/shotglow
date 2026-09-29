@@ -92,8 +92,8 @@ version in both `manifest.json` and `package.json`, runs typecheck + tests, buil
 
 ```bash
 # bump the version in manifest.json and package.json first, then:
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 The landing page's download button points at
@@ -132,7 +132,7 @@ shotglow/
 │   ├── backgrounds.ts       # Background preset registry + CSS/asset resolution
 │   ├── clipboard.ts         # buildComposite (background→shadow→clip→image→redactions) + export
 │   ├── storage.ts           # chrome.storage.local wrappers (strength + beautify settings)
-│   ├── session-store.ts     # chrome.storage.session capture handoff — evicts stale blobs to stay under quota
+│   ├── capture-store.ts     # IndexedDB capture handoff (worker → editor); no 10 MB cap, evicts stale leftovers
 │   ├── types.ts             # Shared TypeScript types (Rect, BeautifySettings, …)
 │   ├── background.test.ts   # Unit tests for service worker
 │   ├── editor.test.ts       # Unit tests for editor
@@ -140,7 +140,7 @@ shotglow/
 │   ├── layout.test.ts       # Unit tests for layout/geometry math
 │   ├── beautify.test.ts     # Unit tests for settings merge + debounce
 │   ├── clipboard.test.ts    # Unit tests for the export compositing pipeline
-│   └── session-store.test.ts # Unit tests for capture eviction + quota guard
+│   └── capture-store.test.ts # Unit tests for the capture handoff (round-trip, take-once, TTL eviction)
 ├── assets/
 │   ├── patterns/            # Tileable solid-stroke SVG pattern overlays (tinted at runtime)
 │   └── backgrounds/         # Bundled mesh-gradient SVG wallpapers

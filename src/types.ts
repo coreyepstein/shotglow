@@ -7,7 +7,7 @@ export type Rect = {
   h: number;
 };
 
-/** Key used to store a captured image in chrome.storage.session */
+/** Key used to hand a captured image from the worker to the editor (IndexedDB) */
 export type SessionImageKey = string;
 
 // ── Beautify settings ────────────────────────────────────────────────────────

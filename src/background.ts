@@ -1,5 +1,5 @@
-import type { BlobBridgeMessage, BlobBridgeResponse, SessionImageKey } from "./types.js";
-import { storeCapture } from "./session-store.js";
+import type { BlobBridgeResponse, SessionImageKey } from "./types.js";
+import { storeCapture, indexedDbCaptureBackend } from "./capture-store.js";
 
 console.log("Shotglow service worker started.");
 
@@ -26,7 +26,7 @@ chrome.runtime.onStartup.addListener(() => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Open the editor popup with a reference to a session storage key */
+/** Open the editor popup with a reference to a stored capture key */
 function openEditor(key: SessionImageKey): void {
   const url = `${chrome.runtime.getURL("editor.html")}?key=${encodeURIComponent(key)}`;
   chrome.windows.create({ url, type: "popup", width: 800, height: 600 });
@@ -42,31 +42,21 @@ function showError(message: string): void {
   });
 }
 
-/** Convert an ArrayBuffer to a base64 data URL */
-function arrayBufferToDataUrl(buffer: ArrayBuffer, mimeType: string): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return `data:${mimeType};base64,${btoa(binary)}`;
-}
-
 // ─── HTTP(S) fetch path ───────────────────────────────────────────────────────
 
-async function captureHttpImage(srcUrl: string): Promise<string> {
+async function captureHttpImage(srcUrl: string): Promise<Blob> {
   const response = await fetch(srcUrl);
   if (!response.ok) {
     throw new Error(`HTTP ${response.status} fetching image`);
   }
-  const mimeType = response.headers.get("content-type") ?? "image/png";
+  const mimeType = (response.headers.get("content-type") ?? "image/png").split(";")[0].trim();
   const buffer = await response.arrayBuffer();
-  return arrayBufferToDataUrl(buffer, mimeType.split(";")[0].trim());
+  return new Blob([buffer], { type: mimeType });
 }
 
 // ─── Blob / data URL bridge path (via content script) ────────────────────────
 
-async function captureBlobImage(srcUrl: string, tabId: number): Promise<string> {
+async function captureBlobImage(srcUrl: string, tabId: number): Promise<Blob> {
   // bridgeBlob returns a Promise in the injected context; the resolved value is
   // BlobBridgeResponse. The executeScript generic tracks the raw return type of
   // func, which is Promise<BlobBridgeResponse>.
@@ -83,7 +73,8 @@ async function captureBlobImage(srcUrl: string, tabId: number): Promise<string> 
   if (!result.success) {
     throw new Error(result.error);
   }
-  return result.dataUrl;
+  // The bridge hands back a PNG data URL; decode it to raw bytes for storage.
+  return (await fetch(result.dataUrl)).blob();
 }
 
 /**
@@ -149,32 +140,24 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   const key: SessionImageKey = `shotglow:${Date.now()}`;
 
   const run = async () => {
-    let dataUrl: string;
+    let image: Blob;
 
     if (srcUrl.startsWith("http://") || srcUrl.startsWith("https://")) {
-      dataUrl = await captureHttpImage(srcUrl);
+      image = await captureHttpImage(srcUrl);
     } else if (srcUrl.startsWith("blob:") || srcUrl.startsWith("data:")) {
       if (tabId == null) {
         showError("Cannot bridge blob URL: no active tab.");
         return;
       }
-      dataUrl = await captureBlobImage(srcUrl, tabId);
+      image = await captureBlobImage(srcUrl, tabId);
     } else {
       showError(`Unsupported image URL scheme: ${srcUrl.slice(0, 30)}`);
       return;
     }
 
-    // Store in session storage (short-lived, tab-session scoped). storeCapture
-    // evicts any earlier capture first so leftover blobs can't exceed the quota.
-    await storeCapture(
-      {
-        get: () => chrome.storage.session.get(),
-        set: (items) => chrome.storage.session.set(items),
-        remove: (keys) => chrome.storage.session.remove(keys),
-      },
-      key,
-      dataUrl,
-    );
+    // Hand the image to the editor through IndexedDB (no 10 MB session-storage
+    // cap; stale leftovers are evicted by storeCapture).
+    await storeCapture(indexedDbCaptureBackend(), key, image);
 
     openEditor(key);
   };

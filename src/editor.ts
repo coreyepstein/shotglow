@@ -1,4 +1,5 @@
 import type { Rect, BeautifySettings, BackgroundSpec } from "./types.js";
+import { takeCapture, indexedDbCaptureBackend } from "./capture-store.js";
 import { copyRedactedToClipboard, downloadRedacted } from "./clipboard.js";
 import { loadStrength, saveStrength, loadBeautify, saveBeautify } from "./storage.js";
 import { DEFAULT_BEAUTIFY, applyPreview, debounce, type PreviewEls } from "./beautify.js";
@@ -361,7 +362,7 @@ function resizeWindowToContents(): void {
 // ── Image loading ──────────────────────────────────────────────────────────────
 
 /** Draw a data URL onto a canvas element. Returns a promise that resolves with the loaded Image. */
-function loadImageOntoCanvas(canvas: HTMLCanvasElement, dataUrl: string): Promise<HTMLImageElement> {
+function loadImageOntoCanvas(canvas: HTMLCanvasElement, src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -375,8 +376,8 @@ function loadImageOntoCanvas(canvas: HTMLCanvasElement, dataUrl: string): Promis
       ctx.drawImage(img, 0, 0);
       resolve(img);
     };
-    img.onerror = () => reject(new Error("Failed to load data URL onto canvas"));
-    img.src = dataUrl;
+    img.onerror = () => reject(new Error("Failed to load image onto canvas"));
+    img.src = src;
   });
 }
 
@@ -742,20 +743,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // ── Load image from session storage ────────────────────────────────────────
+  // ── Load image from the capture store ──────────────────────────────────────
 
   const params = new URLSearchParams(window.location.search);
   const key = params.get("key");
 
   if (key) {
     try {
-      const result = await chrome.storage.session.get(key);
-      const dataUrl: string | undefined = result[key];
+      // takeCapture reads and deletes the record in one step.
+      const blob = await takeCapture(indexedDbCaptureBackend(), key);
 
-      if (!dataUrl) {
+      if (!blob) {
         console.error("Shotglow: no image data found for key", key);
       } else {
-        await loadImageOntoCanvas(baseCanvas, dataUrl);
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+          await loadImageOntoCanvas(baseCanvas, objectUrl);
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
 
         // Match overlay canvas dimensions to base
         overlayCanvas.width = baseCanvas.width;
@@ -766,13 +772,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Render the beautify preview now that the image is loaded
         applyPreviewNow();
-
-        // Clean up session storage after successful load
-        await chrome.storage.session.remove(key);
-        console.log("Shotglow: session key removed after load.");
       }
     } catch (err) {
-      console.error("Shotglow: failed to load image from session storage", err);
+      console.error("Shotglow: failed to load image from capture store", err);
     }
   } else {
     console.warn("Shotglow: no ?key= param found in editor URL.");
