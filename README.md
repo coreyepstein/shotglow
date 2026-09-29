@@ -132,13 +132,15 @@ shotglow/
 │   ├── backgrounds.ts       # Background preset registry + CSS/asset resolution
 │   ├── clipboard.ts         # buildComposite (background→shadow→clip→image→redactions) + export
 │   ├── storage.ts           # chrome.storage.local wrappers (strength + beautify settings)
+│   ├── session-store.ts     # chrome.storage.session capture handoff — evicts stale blobs to stay under quota
 │   ├── types.ts             # Shared TypeScript types (Rect, BeautifySettings, …)
 │   ├── background.test.ts   # Unit tests for service worker
 │   ├── editor.test.ts       # Unit tests for editor
 │   ├── redact.test.ts       # Unit tests for pixelate algorithm
 │   ├── layout.test.ts       # Unit tests for layout/geometry math
 │   ├── beautify.test.ts     # Unit tests for settings merge + debounce
-│   └── clipboard.test.ts    # Unit tests for the export compositing pipeline
+│   ├── clipboard.test.ts    # Unit tests for the export compositing pipeline
+│   └── session-store.test.ts # Unit tests for capture eviction + quota guard
 ├── assets/
 │   ├── patterns/            # Tileable solid-stroke SVG pattern overlays (tinted at runtime)
 │   └── backgrounds/         # Bundled mesh-gradient SVG wallpapers

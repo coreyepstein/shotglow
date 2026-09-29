@@ -1,4 +1,5 @@
 import type { BlobBridgeMessage, BlobBridgeResponse, SessionImageKey } from "./types.js";
+import { storeCapture } from "./session-store.js";
 
 console.log("Shotglow service worker started.");
 
@@ -163,8 +164,17 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       return;
     }
 
-    // Store in session storage (short-lived, tab-session scoped)
-    await chrome.storage.session.set({ [key]: dataUrl });
+    // Store in session storage (short-lived, tab-session scoped). storeCapture
+    // evicts any earlier capture first so leftover blobs can't exceed the quota.
+    await storeCapture(
+      {
+        get: () => chrome.storage.session.get(),
+        set: (items) => chrome.storage.session.set(items),
+        remove: (keys) => chrome.storage.session.remove(keys),
+      },
+      key,
+      dataUrl,
+    );
 
     openEditor(key);
   };
